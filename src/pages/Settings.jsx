@@ -38,9 +38,17 @@ function SettingRow({ icon: Icon, iconTone, title, subtitle, children }) {
         <p className="text-sm font-semibold text-wn-text">{title}</p>
         <p className="mt-1 text-sm text-wn-muted">{subtitle}</p>
       </div>
-      {children}
+      <div className="shrink-0">
+        {children}
+      </div>
     </div>
   )
+}
+
+function getToggleClass(enabled) {
+  return enabled
+    ? 'bg-wn-accent-strong border border-emerald-600/30'
+    : 'border border-slate-300 bg-slate-200'
 }
 
 function formatBackupTime(value) {
@@ -209,10 +217,10 @@ export default function Settings() {
                   themeMode: settings.themeMode === 'light' ? 'dark' : 'light',
                 })
               }
-              className={`relative h-7 w-12 rounded-full ${settings.themeMode === 'light' ? 'bg-slate-300' : 'bg-wn-accent-strong'}`}
+              className={`relative h-7 w-12 shrink-0 rounded-full ${getToggleClass(settings.themeMode !== 'light')}`}
             >
               <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${settings.themeMode === 'light' ? 'left-1' : 'left-6'}`}
+                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${settings.themeMode === 'light' ? 'left-1' : 'left-6'}`}
               />
             </button>
           </SettingRow>
@@ -230,10 +238,10 @@ export default function Settings() {
                   appLockEnabled: !settings.appLockEnabled,
                 })
               }
-              className={`relative h-7 w-12 rounded-full ${settings.appLockEnabled ? 'bg-wn-accent-strong' : 'bg-white/10'}`}
+              className={`relative h-7 w-12 shrink-0 rounded-full ${getToggleClass(settings.appLockEnabled)}`}
             >
               <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${settings.appLockEnabled ? 'left-6' : 'left-1'}`}
+                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${settings.appLockEnabled ? 'left-6' : 'left-1'}`}
               />
             </button>
           </SettingRow>
@@ -312,10 +320,10 @@ export default function Settings() {
                   lastReminderCheckAt: new Date().toISOString(),
                 })
               }
-              className={`relative h-7 w-12 rounded-full ${settings.remindersEnabled ? 'bg-wn-accent-strong' : 'bg-white/10'}`}
+              className={`relative h-7 w-12 shrink-0 rounded-full ${getToggleClass(settings.remindersEnabled)}`}
             >
               <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${settings.remindersEnabled ? 'left-6' : 'left-1'}`}
+                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${settings.remindersEnabled ? 'left-6' : 'left-1'}`}
               />
             </button>
           </SettingRow>
@@ -333,10 +341,10 @@ export default function Settings() {
                   autoBackupEnabled: !settings.autoBackupEnabled,
                 })
               }
-              className={`relative h-7 w-12 rounded-full ${settings.autoBackupEnabled ? 'bg-wn-accent-strong' : 'bg-white/10'}`}
+              className={`relative h-7 w-12 shrink-0 rounded-full ${getToggleClass(settings.autoBackupEnabled)}`}
             >
               <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${settings.autoBackupEnabled ? 'left-6' : 'left-1'}`}
+                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${settings.autoBackupEnabled ? 'left-6' : 'left-1'}`}
               />
             </button>
           </SettingRow>
