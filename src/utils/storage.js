@@ -7,6 +7,7 @@ const defaultData = {
     fd: [],
     rd: [],
     lic: [],
+    ppf: [],
     stocks: [],
   },
 }
@@ -43,6 +44,7 @@ function normalizeData(data) {
       fd: Array.isArray(data?.masters?.fd) ? data.masters.fd : [],
       rd: Array.isArray(data?.masters?.rd) ? data.masters.rd : [],
       lic: Array.isArray(data?.masters?.lic) ? data.masters.lic : [],
+      ppf: Array.isArray(data?.masters?.ppf) ? data.masters.ppf : [],
       stocks: Array.isArray(data?.masters?.stocks) ? data.masters.stocks : [],
     },
   }
@@ -59,6 +61,7 @@ function hasValidShape(data) {
     Array.isArray(data.masters.fd) &&
     Array.isArray(data.masters.rd) &&
     Array.isArray(data.masters.lic) &&
+    Array.isArray(data.masters.ppf) &&
     Array.isArray(data.masters.stocks)
   )
 }

@@ -3,10 +3,10 @@ import { useMemo, useState } from 'react'
 import { getCalendarMonthModel } from '../utils/calendarEvents'
 
 const EVENT_STYLES = {
-  SIP: 'border-emerald-400/20 bg-emerald-400/12 text-emerald-200',
-  BUY: 'border-sky-400/20 bg-sky-400/12 text-sky-200',
+  SIP: 'border-emerald-500/35 bg-emerald-300/20 text-emerald-900',
+  BUY: 'border-sky-500/35 bg-sky-300/20 text-sky-950',
   SELL: 'border-rose-400/20 bg-rose-400/12 text-rose-200',
-  DEPOSIT: 'border-amber-300/20 bg-amber-300/12 text-amber-100',
+  DEPOSIT: 'border-amber-400/35 bg-amber-300/20 text-amber-950',
 }
 
 function formatCurrency(amount) {

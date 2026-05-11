@@ -1,4 +1,4 @@
-import { getMutualFundMasters } from './mutualFunds'
+import { getMutualFundMasters, resolveSipDebitDay } from './mutualFunds'
 import { loadData } from './storage'
 import { listInvestmentTransactions } from './transactionEngine'
 
@@ -162,10 +162,7 @@ function buildGeneratedEvents(viewDate) {
       const start = parseDate(master.sipStartDate)
       const end = parseDate(master.sipEndDate)
       const cancelDate = parseDate(master.sipCancelDate)
-      const baseDay =
-        parseDate(master.sipDueDate)?.getDate() ??
-        parseDate(master.sipStartDate)?.getDate() ??
-        1
+      const baseDay = resolveSipDebitDay(master.sipDueDate, master.sipStartDate) ?? 1
 
       getMonthlyRecurringDates(viewDate, master.sipStartDate, baseDay).forEach((date) => {
         if (start && date < start) {

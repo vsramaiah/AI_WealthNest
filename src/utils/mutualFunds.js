@@ -11,6 +11,43 @@ function toUpperTrimmed(value) {
   return String(value ?? '').trim().toUpperCase()
 }
 
+function parseDate(value) {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+export function resolveSipDebitDay(sipDueDate, sipStartDate = '') {
+  const numericValue = Number(sipDueDate)
+
+  if (Number.isInteger(numericValue) && numericValue >= 1 && numericValue <= 31) {
+    return numericValue
+  }
+
+  const dueDate = parseDate(sipDueDate)
+
+  if (dueDate) {
+    return dueDate.getDate()
+  }
+
+  const startDate = parseDate(sipStartDate)
+  return startDate ? startDate.getDate() : null
+}
+
+export function getMutualFundMasterFormValues(master) {
+  if (!master) {
+    return null
+  }
+
+  return {
+    ...master,
+    sipDueDate: resolveSipDebitDay(master.sipDueDate, master.sipStartDate) ?? '',
+  }
+}
+
 export const mutualFundMasterSchema = [
   {
     name: 'fundName',
@@ -34,8 +71,8 @@ export const mutualFundMasterSchema = [
     required: true,
   },
   {
-    name: 'investmentType',
-    label: 'Investment Type',
+    name: 'transactionType',
+    label: 'Transaction Type',
     type: 'select',
     placeholder: 'Choose investment type',
     required: true,
@@ -66,16 +103,14 @@ export const mutualFundMasterSchema = [
     required: false,
   },
   {
-    name: 'sipCancelDate',
-    label: 'SIP Cancel Date',
-    type: 'date',
-    required: false,
-  },
-  {
     name: 'sipDueDate',
-    label: 'SIP Due Date',
-    type: 'date',
+    label: 'SIP Debit Day',
+    type: 'number',
+    placeholder: 'Enter debit day (1-31)',
     required: false,
+    min: 1,
+    max: 31,
+    step: '1',
   },
   {
     name: 'status',
@@ -94,6 +129,18 @@ export const mutualFundMasterSchema = [
     label: 'Redeem Date',
     type: 'date',
     required: false,
+    showWhen: {
+      status: 'REDEEMED',
+    },
+  },
+  {
+    name: 'sipCancelDate',
+    label: 'Stop Date',
+    type: 'date',
+    required: false,
+    showWhen: {
+      status: 'STOPPED',
+    },
   },
   {
     name: 'notes',
@@ -181,9 +228,14 @@ export const mutualFundTransactionSchema = [
 ]
 
 export function createMutualFundMaster(fields) {
+  const transactionType = fields.transactionType ?? fields.investmentType ?? 'SIP'
+
   return {
     id: fields.id ?? crypto.randomUUID(),
     ...fields,
+    transactionType,
+    investmentType: transactionType,
+    status: fields.status ?? 'ACTIVE',
   }
 }
 
@@ -204,6 +256,39 @@ export function saveMutualFundMaster(fields) {
 
 export function getMutualFundMasters() {
   return loadData().masters.mf
+}
+
+export function updateMutualFundMaster(id, fields) {
+  const data = loadData()
+  let updatedMaster = null
+
+  const nextMasters = data.masters.mf.map((item) => {
+    if (item.id !== id) {
+      return item
+    }
+
+    updatedMaster = createMutualFundMaster({
+      ...item,
+      ...fields,
+      id,
+    })
+
+    return updatedMaster
+  })
+
+  if (!updatedMaster) {
+    return null
+  }
+
+  saveData({
+    ...data,
+    masters: {
+      ...data.masters,
+      mf: nextMasters,
+    },
+  })
+
+  return updatedMaster
 }
 
 export function calculateMutualFundTransaction(fields) {

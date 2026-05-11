@@ -5,7 +5,7 @@ import PageShell from '../components/PageShell'
 import { transactionCategoryOptions } from '../utils/transactionSchemas'
 import { listInvestmentTransactions } from '../utils/transactionEngine'
 
-const MASTER_ONLY_CATEGORIES = new Set(['fd', 'rd', 'lic'])
+const MASTER_ONLY_CATEGORIES = new Set(['rd', 'lic'])
 
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-IN', {
@@ -27,7 +27,17 @@ function formatTxnMeta(txn) {
     return raw.units ? `${raw.units} Units` : formatCurrency(raw.amount ?? 0)
   }
 
-  if (txn.category === 'fd' || txn.category === 'rd' || txn.category === 'ppf' || txn.category === 'epf') {
+  if (txn.category === 'ppf') {
+    return raw.txnType === 'INTEREST'
+      ? 'Interest Credited'
+      : formatCurrency(raw.amount ?? raw.depositAmount ?? 0)
+  }
+
+  if (txn.category === 'fd') {
+    return formatCurrency(raw.depositAmount ?? txn.amount ?? 0)
+  }
+
+  if (txn.category === 'rd' || txn.category === 'epf') {
     return 'Interest Credited'
   }
 
@@ -103,13 +113,13 @@ function getMasterOnlyMessage(category) {
     return `${getCategoryLabel(category)} records are saved as master entries, so they do not appear in Transactions. Use Portfolio, reminders, and calendar views to review them.`
   }
 
-  return 'FD, RD, and LIC are saved as master records, so they do not appear in Transactions. Use Portfolio, reminders, and calendar views to review them.'
+  return 'RD and LIC are saved as master records, so they do not appear in Transactions. Use Portfolio, reminders, and calendar views to review them.'
 }
 
 function toneForType(type) {
   const normalized = String(type).toUpperCase()
 
-  if (normalized === 'BUY' || normalized === 'SIP' || normalized === 'INVEST' || normalized === 'INTEREST') {
+  if (normalized === 'BUY' || normalized === 'SIP' || normalized === 'INVEST' || normalized === 'DEPOSIT' || normalized === 'INTEREST') {
     return 'text-emerald-400'
   }
 
@@ -137,6 +147,10 @@ function badgeTone(type) {
 
   if (normalized === 'INTEREST') {
     return 'bg-blue-500'
+  }
+
+  if (normalized === 'DEPOSIT') {
+    return 'bg-emerald-500'
   }
 
   return 'bg-emerald-500'

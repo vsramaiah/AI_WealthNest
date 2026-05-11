@@ -9,7 +9,25 @@ function buildInitialValues(schema) {
   }, {})
 }
 
+function isFieldVisible(field, values) {
+  if (typeof field.showWhen === 'function') {
+    return field.showWhen(values)
+  }
+
+  if (field.showWhen && typeof field.showWhen === 'object') {
+    return Object.entries(field.showWhen).every(
+      ([name, expectedValue]) => values?.[name] === expectedValue,
+    )
+  }
+
+  return true
+}
+
 function validateField(field, value, values) {
+  if (!isFieldVisible(field, values)) {
+    return ''
+  }
+
   if (field.required && `${value}`.trim() === '') {
     return `${field.label} is required.`
   }
@@ -61,6 +79,8 @@ function formatCurrency(amount) {
     maximumFractionDigits: 2,
   }).format(amount)
 }
+
+const expandedSummaryCategories = new Set(['stocks', 'goldSilver', 'crypto'])
 
 function shouldUseSegmentedControl(field) {
   return field.type === 'select' && field.name === 'txnType' && (field.options?.length ?? 0) <= 3
@@ -151,7 +171,16 @@ function DynamicField({ field, value, error, onChange }) {
   )
 }
 
-export default function DynamicForm({ category, schema, initialValues = null, submitLabel = 'Review Transaction', onSubmit }) {
+export default function DynamicForm({
+  category,
+  schema,
+  initialValues = null,
+  submitLabel = 'Review Transaction',
+  onSubmit,
+  showCalculatedSummary = true,
+  title = 'Transaction Details',
+  description = 'Fields are generated dynamically from the selected category schema.',
+}) {
   const [values, setValues] = useState(() => ({
     ...buildInitialValues(schema),
     ...(initialValues ?? {}),
@@ -166,11 +195,23 @@ export default function DynamicForm({ category, schema, initialValues = null, su
     setErrors({})
   }, [initialValues, schema])
 
+  const visibleSchema = schema.filter((field) => isFieldVisible(field, values))
+
   function handleChange(name, value) {
-    setValues((currentValues) => ({
-      ...currentValues,
-      [name]: value,
-    }))
+    setValues((currentValues) => {
+      const nextValues = {
+        ...currentValues,
+        [name]: value,
+      }
+
+      schema.forEach((field) => {
+        if (!isFieldVisible(field, nextValues) && currentValues[field.name] !== '') {
+          nextValues[field.name] = field.defaultValue ?? ''
+        }
+      })
+
+      return nextValues
+    })
 
     setErrors((currentErrors) => {
       if (!currentErrors[name]) {
@@ -187,7 +228,7 @@ export default function DynamicForm({ category, schema, initialValues = null, su
   function handleSubmit(event) {
     event.preventDefault()
 
-    const nextErrors = schema.reduce((collection, field) => {
+    const nextErrors = visibleSchema.reduce((collection, field) => {
       const error = validateField(field, values[field.name], values)
 
       if (error) {
@@ -206,28 +247,28 @@ export default function DynamicForm({ category, schema, initialValues = null, su
     onSubmit(buildPayload(category, values, schema))
   }
 
-  const calculatedPreview = calculateTransactionByCategory(
-    category,
-    buildPayload(category, values, schema).fields,
-  )
-  const grossValue =
-    calculatedPreview?.grossValue ??
-    (Number(values.quantity) || 0) * (Number(values.pricePerShare) || 0)
-  const charges = Number(values.charges) || 0
-  const totalAmount =
-    calculatedPreview?.totalAmount ??
-    calculatedPreview?.totalValue ??
-    (Number(values.amount) || 0)
+  const calculatedPreview = showCalculatedSummary
+    ? calculateTransactionByCategory(category, buildPayload(category, values, schema).fields)
+    : null
+  const grossValue = showCalculatedSummary
+    ? calculatedPreview?.grossValue ??
+      (Number(values.quantity) || 0) * (Number(values.pricePerShare) || 0)
+    : 0
+  const charges = showCalculatedSummary ? Number(values.charges) || 0 : 0
+  const totalAmount = showCalculatedSummary
+    ? calculatedPreview?.totalAmount ??
+      calculatedPreview?.totalValue ??
+      (Number(values.amount) || 0)
+    : 0
+  const showExpandedSummary = expandedSummaryCategories.has(category)
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="glass-card rounded-[28px] border border-white/6 bg-white/[0.03] p-4">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="section-title">Transaction Details</p>
-            <p className="mt-1 text-sm text-wn-muted">
-              Fields are generated dynamically from the selected category schema.
-            </p>
+            <p className="section-title">{title}</p>
+            <p className="mt-1 text-sm text-wn-muted">{description}</p>
           </div>
           <div className="icon-badge h-10 w-10 rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-400">
             <Sparkles size={18} strokeWidth={2.2} />
@@ -235,7 +276,7 @@ export default function DynamicForm({ category, schema, initialValues = null, su
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {schema.map((field) => (
+          {visibleSchema.map((field) => (
             <DynamicField
               key={field.name}
               field={field}
@@ -246,28 +287,39 @@ export default function DynamicForm({ category, schema, initialValues = null, su
           ))}
         </div>
 
-        <div className="mt-5 rounded-[22px] border border-white/6 bg-white/[0.04] p-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <p className="text-xs text-wn-muted">Gross Value</p>
-              <p className="mt-2 text-sm font-semibold text-wn-text">
-                {formatCurrency(Number(grossValue) || 0)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-wn-muted">Charges</p>
-              <p className="mt-2 text-sm font-semibold text-wn-text">
-                {formatCurrency(Number(charges) || 0)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-wn-muted">Total Amount</p>
-              <p className="mt-2 text-sm font-semibold text-emerald-300">
-                {formatCurrency(Number(totalAmount) || 0)}
-              </p>
-            </div>
+        {showCalculatedSummary ? (
+          <div className="mt-5 rounded-[22px] border border-white/6 bg-white/[0.04] p-4">
+            {showExpandedSummary ? (
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-xs text-wn-muted">Gross Value</p>
+                  <p className="mt-2 text-sm font-semibold text-wn-text">
+                    {formatCurrency(Number(grossValue) || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-wn-muted">Charges</p>
+                  <p className="mt-2 text-sm font-semibold text-wn-text">
+                    {formatCurrency(Number(charges) || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-wn-muted">Total Amount</p>
+                  <p className="mt-2 text-sm font-semibold text-emerald-300">
+                    {formatCurrency(Number(totalAmount) || 0)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-wn-muted">Total Amount</p>
+                <p className="mt-2 text-sm font-semibold text-emerald-300">
+                  {formatCurrency(Number(totalAmount) || 0)}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+        ) : null}
       </div>
 
       <button type="submit" className="primary-button w-full">

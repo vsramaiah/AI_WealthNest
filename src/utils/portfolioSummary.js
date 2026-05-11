@@ -160,18 +160,20 @@ function getMasterCategorySummary(categoryId, items, valueSelector, investedSele
 }
 
 function getFdCategorySummary() {
-  const items = loadData().masters.fd ?? []
   const total = getFdSummary()
+  const items = loadData().transactions.filter((txn) => txn.category === 'fd')
 
   return buildSummary('fd', {
     value: total.maturityAmount,
-    invested: items.reduce((sum, item) => sum + toNumber(item.depositAmount), 0),
+    invested: items.reduce((sum, item) => sum + toNumber(getTransactionRawData(item).depositAmount), 0),
     details: items.map((item) => ({
       id: item.id,
-      title: item.bankName,
-      subtitle: `A/C ${item.accountNumber}`,
+      title: getTransactionRawData(item).bankName,
+      subtitle: getTransactionRawData(item).accountNumber
+        ? `A/C ${getTransactionRawData(item).accountNumber}`
+        : 'Stored entry',
       value: toNumber(item.calculated?.maturityAmount),
-      invested: toNumber(item.depositAmount),
+      invested: toNumber(getTransactionRawData(item).depositAmount),
     })),
   })
 }

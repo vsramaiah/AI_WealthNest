@@ -195,6 +195,18 @@ export const fdMasterSchema = [
     step: '1',
   },
   {
+    name: 'status',
+    label: 'Status',
+    type: 'select',
+    placeholder: 'Choose status',
+    required: true,
+    defaultValue: 'ACTIVE',
+    options: [
+      { label: 'ACTIVE', value: 'ACTIVE' },
+      { label: 'CLOSED', value: 'CLOSED' },
+    ],
+  },
+  {
     name: 'notes',
     label: 'Notes',
     type: 'text',
@@ -268,6 +280,18 @@ export const rdMasterSchema = [
     step: '1',
   },
   {
+    name: 'status',
+    label: 'Status',
+    type: 'select',
+    placeholder: 'Choose status',
+    required: true,
+    defaultValue: 'ACTIVE',
+    options: [
+      { label: 'ACTIVE', value: 'ACTIVE' },
+      { label: 'CLOSED', value: 'CLOSED' },
+    ],
+  },
+  {
     name: 'notes',
     label: 'Notes',
     type: 'text',
@@ -298,7 +322,7 @@ export const ppfSchema = [
     placeholder: 'Choose transaction type',
     required: true,
     options: [
-      { label: 'INVEST', value: 'INVEST' },
+      { label: 'DEPOSIT', value: 'DEPOSIT' },
       { label: 'INTEREST', value: 'INTEREST' },
     ],
   },
@@ -309,15 +333,8 @@ export const ppfSchema = [
     required: true,
   },
   {
-    name: 'financialYear',
-    label: 'Financial Year',
-    type: 'text',
-    placeholder: 'Example: 2026-27',
-    required: true,
-  },
-  {
     name: 'amount',
-    label: 'Amount',
+    label: 'Deposit Amount',
     type: 'number',
     placeholder: 'Enter amount',
     required: true,
@@ -593,6 +610,18 @@ export const licMasterSchema = [
     required: true,
   },
   {
+    name: 'status',
+    label: 'Status',
+    type: 'select',
+    placeholder: 'Choose status',
+    required: true,
+    defaultValue: 'ACTIVE',
+    options: [
+      { label: 'ACTIVE', value: 'ACTIVE' },
+      { label: 'CLOSED', value: 'CLOSED' },
+    ],
+  },
+  {
     name: 'notes',
     label: 'Notes',
     type: 'text',
@@ -743,7 +772,7 @@ export const otherInvestmentOptions = [
   { label: 'Crypto', value: cryptoCategory },
 ]
 
-export const otherInvestmentMasterCategories = ['fd', 'rd', 'lic']
+export const otherInvestmentMasterCategories = ['rd', 'lic']
 
 export function calculateGoldSilver(fields) {
   return {
@@ -779,13 +808,14 @@ export function calculateRdMaster(fields) {
 
 export function calculatePpf(fields) {
   const amount = toNumber(fields.amount)
+  const interestRate = toNumber(fields.interestRate) || PPF_INTEREST_RATE
   const matchingTransactions = getTransactionsByKey(
     ppfCategory,
     'accountNumber',
     fields.accountNumber,
   )
   const previousBalance = getLatestBalance(matchingTransactions)
-  const yearlyInterest = (amount * PPF_INTEREST_RATE) / 100
+  const yearlyInterest = (amount * interestRate) / 100
 
   return {
     yearlyInterest,
@@ -850,6 +880,7 @@ function buildMasterEntry(fields, calculated = {}) {
   return {
     id: fields.id ?? crypto.randomUUID(),
     ...fields,
+    status: fields.status ?? 'ACTIVE',
     calculated,
   }
 }
@@ -969,7 +1000,7 @@ export function getGoldSilverSummary() {
 }
 
 export function getFdSummary() {
-  return (loadData().masters.fd ?? []).reduce(
+  return getTransactionsByCategory('fd').reduce(
     (summary, item) => {
       summary.maturityAmount += toNumber(item.calculated?.maturityAmount)
       return summary

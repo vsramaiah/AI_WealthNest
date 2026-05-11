@@ -45,7 +45,7 @@ export function buildTransactionRecord(category, rawData, overrides = {}) {
 }
 
 export function addInvestmentTransaction(category, rawData, overrides = {}) {
-  if (isOtherInvestmentMasterCategory(category)) {
+  if (isOtherInvestmentMasterCategory(category) && !overrides.forceTransaction) {
     return saveOtherInvestment(category, rawData)
   }
 
@@ -53,7 +53,7 @@ export function addInvestmentTransaction(category, rawData, overrides = {}) {
 }
 
 export function editInvestmentTransaction(id, category, rawData, overrides = {}) {
-  if (isOtherInvestmentMasterCategory(category)) {
+  if (isOtherInvestmentMasterCategory(category) && !overrides.forceTransaction) {
     return updateOtherInvestment(category, id, rawData)
   }
 

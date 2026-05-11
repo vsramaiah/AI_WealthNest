@@ -1,4 +1,5 @@
 import { getMutualFundMasters } from './mutualFunds'
+import { resolveSipDebitDay } from './mutualFunds'
 import { loadData } from './storage'
 
 function normalizeDate(dateString) {
@@ -15,7 +16,7 @@ function formatDate(date) {
 }
 
 function getSipDueDay(master) {
-  return normalizeDate(master.sipDueDate)?.getDate() ?? normalizeDate(master.sipStartDate)?.getDate() ?? null
+  return resolveSipDebitDay(master.sipDueDate, master.sipStartDate)
 }
 
 function computeNextSipDate(master) {
