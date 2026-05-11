@@ -27,6 +27,20 @@ function formatPercent(value) {
   return `${value.toFixed(1)}%`
 }
 
+function getCategoryValueClass(amount) {
+  const value = formatCurrency(amount)
+
+  if (value.length >= 15) {
+    return 'text-[1.5rem]'
+  }
+
+  if (value.length >= 13) {
+    return 'text-[1.7rem]'
+  }
+
+  return 'text-2xl'
+}
+
 function buildAllocationGradient(groups) {
   if (!groups.length) {
     return 'conic-gradient(#1f2937 0deg 360deg)'
@@ -56,8 +70,8 @@ export default function Home() {
   return (
     <PageShell
       eyebrow="Overview"
-      title="Your wealth snapshot"
-      description="A cleaner look at net worth, allocation, reminders, and upcoming investment activity."
+      title="Portfolio Overview"
+      description="Review net worth, allocation, reminders, and upcoming investment activity in one place."
     >
       <div className="space-y-4">
         <article className="glass-card overflow-hidden p-5">
@@ -69,7 +83,7 @@ export default function Home() {
               </p>
               <p className="mt-2 flex items-center gap-2 text-sm font-medium text-emerald-400">
                 <TrendingUp size={16} strokeWidth={2.2} />
-                Portfolio summary is ready locally
+                Portfolio data is available on this device
               </p>
             </div>
             <button
@@ -100,7 +114,7 @@ export default function Home() {
             <div>
               <p className="section-title">Asset Allocation</p>
               <p className="mt-1 text-sm text-wn-muted">
-                Grouped by investment buckets across the app.
+                Allocation grouped by major investment class.
               </p>
             </div>
             <Link to="/portfolio" className="pill-chip">
@@ -141,7 +155,7 @@ export default function Home() {
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-4 px-1">
             <p className="section-title">Category Cards</p>
-            <span className="text-sm text-wn-muted">Market, fixed income, insurance</span>
+            <span className="text-sm text-wn-muted">Grouped by investment class</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -152,9 +166,9 @@ export default function Home() {
                 state={{ initialGroup: group.group }}
                 className={`block rounded-[26px] border border-white/6 bg-gradient-to-br ${GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]} p-4 text-left shadow-[0_16px_40px_rgba(0,0,0,0.2)]`}
               >
-                <div className="rounded-[22px] bg-black/15 p-4 backdrop-blur">
+                <div className="min-w-0 rounded-[22px] bg-black/15 p-4 backdrop-blur">
                   <p className="text-sm font-medium text-wn-text">{group.group}</p>
-                  <p className="mt-3 text-2xl font-semibold text-wn-text">
+                  <p className={`mt-3 overflow-hidden whitespace-nowrap font-semibold leading-tight tracking-tight text-wn-text ${getCategoryValueClass(group.value)}`}>
                     {formatCurrency(group.value)}
                   </p>
                   <p className="mt-2 text-sm text-wn-muted">
@@ -171,7 +185,7 @@ export default function Home() {
             <div>
               <p className="section-title">Upcoming SIPs</p>
               <p className="mt-1 text-sm text-wn-muted">
-                Auto-generated from your mutual fund masters.
+                Generated from your active mutual fund account records.
               </p>
             </div>
             <div className="icon-badge h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-400">
@@ -199,7 +213,7 @@ export default function Home() {
               ))
             ) : (
               <p className="section-copy">
-                No active SIP masters yet. Add mutual fund masters to generate schedules.
+                No active SIP schedules are available. Add a mutual fund account to generate upcoming entries.
               </p>
             )}
           </div>
@@ -210,7 +224,7 @@ export default function Home() {
             <div>
               <p className="section-title">Reminder Banners</p>
               <p className="mt-1 text-sm text-wn-muted">
-                Due dates and missed items generated from your saved records.
+                Due dates and exceptions generated from your saved records.
               </p>
             </div>
             <div className="icon-badge h-10 w-10 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-400">
@@ -228,7 +242,7 @@ export default function Home() {
               ))
             ) : (
               <p className="section-copy">
-                No reminders are active right now. Enable reminders and add SIPs or maturity items.
+                No reminders are active. Enable reminders and add scheduled investment records to populate this section.
               </p>
             )}
           </div>

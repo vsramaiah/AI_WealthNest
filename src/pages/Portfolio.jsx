@@ -26,6 +26,10 @@ function profitTone(value) {
   return value >= 0 ? 'text-emerald-400' : 'text-rose-400'
 }
 
+function isFixedIncomeCategory(category) {
+  return category.group === 'Fixed Income'
+}
+
 export default function Portfolio() {
   const overview = useMemo(() => getPortfolioOverview(), [])
   const location = useLocation()
@@ -112,19 +116,25 @@ export default function Portfolio() {
 
                       <div className="mt-4 grid grid-cols-3 gap-3">
                         <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                          <p className="metric-label">Value</p>
+                          <p className="metric-label">
+                            {isFixedIncomeCategory(category) ? 'Total' : 'Value'}
+                          </p>
                           <p className="mt-2 text-sm font-semibold text-wn-text">
                             {formatCurrency(category.value)}
                           </p>
                         </div>
                         <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                          <p className="metric-label">Invested</p>
+                          <p className="metric-label">
+                            {isFixedIncomeCategory(category) ? 'Deposit' : 'Invested'}
+                          </p>
                           <p className="mt-2 text-sm font-semibold text-wn-text">
                             {formatCurrency(category.invested)}
                           </p>
                         </div>
                         <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                          <p className="metric-label">P/L</p>
+                          <p className="metric-label">
+                            {isFixedIncomeCategory(category) ? 'Interest' : 'P/L'}
+                          </p>
                           <p className={`mt-2 text-sm font-semibold ${profitTone(category.profitLoss)}`}>
                             {formatCurrency(category.profitLoss)}
                           </p>

@@ -1,36 +1,37 @@
-import { Bell, Search, SlidersHorizontal } from 'lucide-react'
-import { useMemo } from 'react'
+import { Bell, PencilLine, Search, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { loadAppSettings, saveAppSettings, subscribeToAppSettings } from '../utils/appSettings'
 import BrandMark from './BrandMark'
 
-function getHeaderMeta(pathname) {
+function getHeaderMeta(pathname, investorName = 'Investor') {
   if (pathname.startsWith('/portfolio/')) {
     return {
       title: 'Asset Details',
-      subtitle: 'Value, invested, and category records',
+      subtitle: 'Category-level balances, contributions, and records',
     }
   }
 
   const pageMeta = {
     '/home': {
-      title: 'Hi, Investor',
-      subtitle: 'Track, analyse, and grow',
+      title: `Hi, ${investorName || 'Investor'}`,
+      subtitle: 'Monitor balances, allocation, and upcoming activity',
     },
     '/portfolio': {
       title: 'Portfolio',
-      subtitle: 'Your assets across every category',
+      subtitle: 'A consolidated view across all investment categories',
     },
     '/add': {
       title: 'Add Transaction',
-      subtitle: 'Capture a new entry in two quick steps',
+      subtitle: 'Create account records and capture investment entries',
     },
     '/transactions': {
       title: 'Transactions',
-      subtitle: 'Review activity and apply filters',
+      subtitle: 'Review transaction history and refine results with filters',
     },
     '/settings': {
       title: 'Settings',
-      subtitle: 'Privacy, backup, and preferences',
+      subtitle: 'Security, backup, and application preferences',
     },
   }
 
@@ -53,14 +54,34 @@ function ActionButton({ children, onClick, label }) {
 export default function Header() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const meta = useMemo(() => getHeaderMeta(pathname), [pathname])
+  const [settings, setSettings] = useState(() => loadAppSettings())
+  const meta = useMemo(
+    () => getHeaderMeta(pathname, settings.investorName),
+    [pathname, settings.investorName],
+  )
   const showExpandedBrand = pathname === '/home'
+
+  useEffect(() => subscribeToAppSettings(setSettings), [])
+
+  function handleInvestorNameEdit() {
+    const currentName = settings.investorName ?? 'Investor'
+    const nextName = window.prompt('Enter the display name for the dashboard greeting.', currentName)
+
+    if (nextName === null) {
+      return
+    }
+
+    const normalizedName = nextName.trim().replace(/\s+/g, ' ').slice(0, 24) || 'Investor'
+    saveAppSettings({
+      investorName: normalizedName,
+    })
+  }
 
   return (
     <header className="sticky top-0 z-20 border-b border-white/5 bg-wn-bg/88 px-4 pb-4 pt-6 backdrop-blur-xl">
       <div className="space-y-4">
         {showExpandedBrand ? (
-          <BrandMark subtitle="Private investing, beautifully organized." />
+          <BrandMark minimal />
         ) : (
           <div className="flex items-center justify-between gap-3">
             <BrandMark compact subtitle="" />
@@ -70,9 +91,21 @@ export default function Header() {
 
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="truncate text-[1.9rem] font-semibold tracking-tight text-wn-text">
-              {meta.title}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-[1.9rem] font-semibold tracking-tight text-wn-text">
+                {meta.title}
+              </h1>
+              {showExpandedBrand ? (
+                <button
+                  type="button"
+                  onClick={handleInvestorNameEdit}
+                  aria-label="Edit dashboard name"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/8 bg-white/[0.04] text-wn-text hover:bg-white/[0.06]"
+                >
+                  <PencilLine size={15} strokeWidth={2.1} />
+                </button>
+              ) : null}
+            </div>
             <p className="mt-1 text-sm text-wn-muted">{meta.subtitle}</p>
           </div>
 

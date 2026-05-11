@@ -265,13 +265,13 @@ export default function AddTransaction() {
         <div className="sticky top-0 z-10 space-y-3 bg-wn-bg/96 pb-2 pt-1 backdrop-blur-xl">
           <article className="glass-card p-5">
             <p className="text-center text-base font-semibold text-wn-text">
-              {editingTransaction ? 'Edit Slave Transaction' : 'Add Module'}
+              {editingTransaction ? 'Edit Entry' : 'Create Record'}
             </p>
 
             <div className="mt-4 flex gap-2 rounded-full border border-white/8 bg-white/[0.03] p-1">
               <TabChip
                 active={activeTab === 'master'}
-                label="Master Data"
+                label="Accounts"
                 onClick={() => {
                   setSaveMessage('')
                   updateFlowParams({
@@ -283,7 +283,7 @@ export default function AddTransaction() {
               />
               <TabChip
                 active={activeTab === 'slave'}
-                label="Slave Data"
+                label="Add Entry"
                 onClick={() => {
                   setSaveMessage('')
                   updateFlowParams({
@@ -299,9 +299,9 @@ export default function AddTransaction() {
         {activeTab === 'master' ? (
           <section className="space-y-4">
             <div className="px-1">
-              <p className="section-title">Master Data</p>
+              <p className="section-title">Accounts</p>
               <p className="mt-1 text-sm text-wn-muted">
-                One-time setup records. Closed items stay in history and remain available for audit.
+                Maintain account-level records that remain available for reference and audit history.
               </p>
             </div>
 
@@ -317,8 +317,8 @@ export default function AddTransaction() {
                         </p>
                         <p className="mt-1 text-sm text-wn-muted">
                           {editingMaster
-                            ? 'Update master fields without removing history.'
-                            : 'Create the reusable parent record for future slave transactions.'}
+                            ? 'Update account details without removing historical records.'
+                            : 'Create an account record for future transaction entries.'}
                         </p>
                       </div>
                     </div>
@@ -333,10 +333,10 @@ export default function AddTransaction() {
                   category={masterCategory}
                   schema={activeMasterConfig.masterSchema}
                   initialValues={getMasterFormInitialValues(masterCategory, editingMaster)}
-                  submitLabel={editingMaster ? 'Update Master Data' : 'Save Master Data'}
+                  submitLabel={editingMaster ? 'Update Account' : 'Save Account'}
                   showCalculatedSummary={false}
-                  title="Master Details"
-                  description="Set up reusable master fields for this category. Transaction totals are not shown here."
+                  title="Account Details"
+                  description="Maintain reusable account information for this category. Transaction totals are not shown here."
                   onSubmit={handleMasterSubmit}
                 />
               </section>
@@ -382,9 +382,9 @@ export default function AddTransaction() {
                 </div>
 
                 <div className="px-1 pt-2">
-                  <p className="section-title">Create or Update Master</p>
+                  <p className="section-title">Create or Update Account</p>
                   <p className="mt-1 text-sm text-wn-muted">
-                    Choose a category to open its relevant master-data fields page.
+                    Select a category to create or update its account record.
                   </p>
                 </div>
 
@@ -399,9 +399,9 @@ export default function AddTransaction() {
         ) : (
           <section className="space-y-4">
             <div className="px-1">
-              <p className="section-title">Slave Data</p>
+              <p className="section-title">Add Entry</p>
               <p className="mt-1 text-sm text-wn-muted">
-                Select a category, connect to an active master if required, then record the child transaction.
+                Select a category, link an active account when required, and record the entry.
               </p>
             </div>
 
@@ -416,8 +416,8 @@ export default function AddTransaction() {
                       </p>
                       <p className="mt-1 text-sm text-wn-muted">
                         {requiresMasterSelection(slaveCategory)
-                          ? 'Only ACTIVE master records can be selected here.'
-                          : 'This category records transactions directly without a master relationship.'}
+                          ? 'Only active account records are available for selection.'
+                          : 'This category supports direct transaction entry without an account link.'}
                       </p>
                     </div>
                   </div>
@@ -430,9 +430,9 @@ export default function AddTransaction() {
             ) : (
               <>
                 <div className="px-1 pt-2">
-                  <p className="section-title">Choose Slave Category</p>
+                  <p className="section-title">Choose Category</p>
                   <p className="mt-1 text-sm text-wn-muted">
-                    Tap a category to open its relevant slave-data fields page.
+                    Select a category to open the relevant entry form.
                   </p>
                 </div>
 
@@ -447,9 +447,9 @@ export default function AddTransaction() {
             {showSlaveMasterSelection ? (
               <section className="space-y-3">
                 <div className="px-1">
-                  <p className="section-title">Select Active Master</p>
+                  <p className="section-title">Select Active Account</p>
                   <p className="mt-1 text-sm text-wn-muted">
-                    Closed master records are excluded from the slave selection list.
+                    Closed account records are excluded from this selection list.
                   </p>
                 </div>
 
@@ -499,9 +499,9 @@ export default function AddTransaction() {
                   </div>
                 ) : (
                   <article className="glass-card p-5">
-                    <p className="section-title">No active master records</p>
+                    <p className="section-title">No Active Accounts</p>
                     <p className="mt-2 text-sm text-wn-muted">
-                      Create master data first or reopen an existing master record before adding slave entries.
+                      Create an account record first or reopen an existing one before adding entries.
                     </p>
                   </article>
                 )}
@@ -510,7 +510,7 @@ export default function AddTransaction() {
 
             {selectedMaster ? (
               <article className="glass-card p-4">
-                <p className="text-sm text-wn-muted">Selected Master</p>
+                <p className="text-sm text-wn-muted">Selected Account</p>
                 <p className="mt-2 text-base font-semibold text-wn-text">
                   {buildMasterCardMeta(slaveCategory, selectedMaster)?.title}
                 </p>
@@ -525,18 +525,18 @@ export default function AddTransaction() {
                   category={slaveCategory}
                   schema={slaveSchema}
                   initialValues={slaveInitialValues}
-                  submitLabel={editingTransaction ? 'Update Slave Data' : 'Save Slave Data'}
+                  submitLabel={editingTransaction ? 'Update Entry' : 'Save Entry'}
                   title="Transaction Details"
-                  description="Fields are generated dynamically from the selected category schema."
+                  description="Fields are generated from the selected category configuration."
                   onSubmit={handleSlaveSubmit}
                 />
             ) : null}
 
             {canRenderSlaveForm && slaveSchema.length === 0 ? (
               <article className="glass-card p-5">
-                <p className="section-title">Slave form not configured yet</p>
+                <p className="section-title">Entry Form Not Configured</p>
                 <p className="mt-2 text-sm text-wn-muted">
-                  This category already participates in the master/slave architecture, but its child transaction form has not been added yet.
+                  This category is enabled for the account-entry workflow, but its entry form is not configured yet.
                 </p>
               </article>
             ) : null}

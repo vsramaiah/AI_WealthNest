@@ -83,6 +83,64 @@ function getTransactionCategorySummary(categoryId, mapper) {
     .map((txn) => mapper(txn))
 }
 
+function normalizeTxnType(value) {
+  return String(value ?? '').trim().toUpperCase()
+}
+
+function buildFixedIncomeTransactionSummary({
+  categoryId,
+  keyField,
+  titleField,
+  subtitleField,
+  amountResolver,
+  depositTypes = ['DEPOSIT', 'INVEST'],
+  interestTypes = ['INTEREST'],
+}) {
+  const grouped = loadData().transactions
+    .filter((txn) => txn.category === categoryId)
+    .reduce((collection, txn) => {
+      const rawData = getTransactionRawData(txn)
+      const accountKey = String(rawData[keyField] ?? '').trim() || txn.id
+      const amount = toNumber(amountResolver(txn, rawData))
+      const txnType = normalizeTxnType(rawData.txnType ?? rawData.transactionType)
+      const current = collection[accountKey] ?? {
+        id: accountKey,
+        title: rawData[titleField] || 'Stored entry',
+        subtitle: rawData[subtitleField] || '',
+        total: 0,
+        deposit: 0,
+        interest: 0,
+      }
+
+      if (depositTypes.includes(txnType)) {
+        current.deposit += amount
+      } else if (interestTypes.includes(txnType)) {
+        current.interest += amount
+      }
+
+      current.total = current.deposit + current.interest
+      current.title = rawData[titleField] || current.title
+      current.subtitle = rawData[subtitleField] || current.subtitle
+      collection[accountKey] = current
+
+      return collection
+    }, {})
+
+  const details = Object.values(grouped).map((item) => ({
+    id: item.id,
+    title: item.title,
+    subtitle: item.subtitle ? `A/C ${item.subtitle}` : 'Stored entry',
+    value: item.total,
+    invested: item.deposit,
+  }))
+
+  return buildSummary(categoryId, {
+    value: details.reduce((sum, item) => sum + item.value, 0),
+    invested: details.reduce((sum, item) => sum + item.invested, 0),
+    details,
+  })
+}
+
 function buildAccountLevelSummary(categoryId, keyField, titleField, subtitleField, valueField, investedField) {
   const grouped = loadData().transactions
     .filter((txn) => txn.category === categoryId)
@@ -160,11 +218,10 @@ function getMasterCategorySummary(categoryId, items, valueSelector, investedSele
 }
 
 function getFdCategorySummary() {
-  const total = getFdSummary()
   const items = loadData().transactions.filter((txn) => txn.category === 'fd')
 
   return buildSummary('fd', {
-    value: total.maturityAmount,
+    value: items.reduce((sum, item) => sum + toNumber(item.calculated?.maturityAmount), 0),
     invested: items.reduce((sum, item) => sum + toNumber(getTransactionRawData(item).depositAmount), 0),
     details: items.map((item) => ({
       id: item.id,
@@ -180,10 +237,13 @@ function getFdCategorySummary() {
 
 function getRdCategorySummary() {
   const items = loadData().masters.rd ?? []
-  const total = getRdSummary()
 
   return buildSummary('rd', {
-    value: total.maturityAmount,
+    value: items.reduce((sum, item) => {
+      const totalInvested = toNumber(item.monthlyDeposit) * toNumber(item.tenureMonths)
+      const maturityAmount = toNumber(item.calculated?.maturityAmount)
+      return sum + (maturityAmount || totalInvested)
+    }, 0),
     invested: items.reduce(
       (sum, item) => sum + toNumber(item.calculated?.totalInvested ?? item.monthlyDeposit * item.tenureMonths),
       0,
@@ -192,70 +252,40 @@ function getRdCategorySummary() {
       id: item.id,
       title: item.bankName,
       subtitle: `A/C ${item.accountNumber}`,
-      value: toNumber(item.calculated?.maturityAmount),
-      invested: toNumber(item.calculated?.totalInvested),
+      value: toNumber(item.calculated?.maturityAmount ?? item.monthlyDeposit * item.tenureMonths),
+      invested: toNumber(item.calculated?.totalInvested ?? item.monthlyDeposit * item.tenureMonths),
     })),
   })
 }
 
 function getPpfCategorySummary() {
-  const details = buildAccountLevelSummary(
-    ppfCategory,
-    'accountNumber',
-    'bankName',
-    'accountNumber',
-    (txn) => txn.calculated?.balance,
-    (_txn, rawData) => rawData.amount,
-  ).map((item) => ({
-    ...item,
-    subtitle: item.subtitle ? `A/C ${item.subtitle}` : 'Stored entry',
-  }))
-
-  return buildSummary(ppfCategory, {
-    value: details.reduce((sum, item) => sum + item.value, 0),
-    invested: details.reduce((sum, item) => sum + item.invested, 0),
-    details,
+  return buildFixedIncomeTransactionSummary({
+    categoryId: ppfCategory,
+    keyField: 'accountNumber',
+    titleField: 'bankName',
+    subtitleField: 'accountNumber',
+    amountResolver: (_txn, rawData) => rawData.amount,
   })
 }
 
 function getEpfCategorySummary() {
-  const details = getTransactionCategorySummary(epfCategory, (txn) => {
-    const rawData = getTransactionRawData(txn)
-
-    return {
-      id: txn.id,
-      title: rawData.employerName,
-      subtitle: `UAN ${rawData.uanNumber}`,
-      value: toNumber(txn.calculated?.balance),
-      invested: toNumber(txn.calculated?.totalContribution),
-    }
-  })
-
-  return buildSummary(epfCategory, {
-    value: details.reduce((sum, item) => sum + item.value, 0),
-    invested: details.reduce((sum, item) => sum + item.invested, 0),
-    details,
+  return buildFixedIncomeTransactionSummary({
+    categoryId: epfCategory,
+    keyField: 'uanNumber',
+    titleField: 'employerName',
+    subtitleField: 'uanNumber',
+    amountResolver: (_txn, rawData) =>
+      toNumber(rawData.employeeContribution) + toNumber(rawData.employerContribution),
   })
 }
 
 function getNpsCategorySummary() {
-  const details = getTransactionCategorySummary(npsCategory, (txn) => {
-    const rawData = getTransactionRawData(txn)
-    const amount = toNumber(rawData.amount)
-
-    return {
-      id: txn.id,
-      title: rawData.scheme,
-      subtitle: rawData.tier,
-      value: amount,
-      invested: amount,
-    }
-  })
-
-  return buildSummary(npsCategory, {
-    value: details.reduce((sum, item) => sum + item.value, 0),
-    invested: details.reduce((sum, item) => sum + item.invested, 0),
-    details,
+  return buildFixedIncomeTransactionSummary({
+    categoryId: npsCategory,
+    keyField: 'pranNumber',
+    titleField: 'scheme',
+    subtitleField: 'pranNumber',
+    amountResolver: (_txn, rawData) => rawData.amount,
   })
 }
 

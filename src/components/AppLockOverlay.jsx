@@ -18,9 +18,10 @@ export default function AppLockOverlay({ onUnlock, pinHint }) {
           <input
             type="password"
             inputMode="numeric"
+            maxLength={4}
             value={pin}
             onChange={(event) => {
-              setPin(event.target.value)
+              setPin(event.target.value.replace(/\D/g, '').slice(0, 4))
               setError('')
             }}
             className="w-full rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-wn-text outline-none transition focus:border-wn-accent focus:bg-white/7"

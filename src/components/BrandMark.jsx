@@ -47,7 +47,11 @@ function WealthNestGlyph({ className = 'h-11 w-11' }) {
   )
 }
 
-export default function BrandMark({ subtitle = 'Build wealth with clarity', compact = false }) {
+export default function BrandMark({
+  subtitle = 'A disciplined approach to personal wealth management',
+  compact = false,
+  minimal = false,
+}) {
   return (
     <div className={`flex items-center ${compact ? 'gap-3' : 'gap-4'}`}>
       <div className="rounded-[20px] border border-white/8 bg-white/[0.03] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.24)]">
@@ -55,13 +59,15 @@ export default function BrandMark({ subtitle = 'Build wealth with clarity', comp
       </div>
 
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-emerald-300/88">
-          WealthNest
+        <p className={`font-semibold uppercase text-emerald-300/88 ${minimal ? 'text-xs tracking-[0.28em]' : 'text-[10px] tracking-[0.34em]'}`}>
+          WEALTHNEST
         </p>
-        <p className={`truncate font-semibold tracking-tight text-wn-text ${compact ? 'text-base' : 'text-lg'}`}>
-          Wealth that compounds with discipline.
-        </p>
-        {!compact ? <p className="mt-1 text-sm text-wn-muted">{subtitle}</p> : null}
+        {!minimal ? (
+          <p className={`truncate font-semibold tracking-tight text-wn-text ${compact ? 'text-base' : 'text-lg'}`}>
+            Structured wealth management for long-term growth.
+          </p>
+        ) : null}
+        {!compact && !minimal ? <p className="mt-1 text-sm text-wn-muted">{subtitle}</p> : null}
       </div>
     </div>
   )

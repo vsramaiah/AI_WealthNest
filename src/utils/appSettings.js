@@ -4,6 +4,7 @@ const APP_LOCK_SESSION_KEY = 'wealthNestUnlocked'
 const APP_LOCK_EVENT = 'wealthnest:app-lock-changed'
 
 const defaultSettings = {
+  investorName: 'Investor',
   themeMode: 'dark',
   autoBackupEnabled: false,
   lastBackupAt: null,
@@ -12,6 +13,12 @@ const defaultSettings = {
   appLockPin: '1234',
   remindersEnabled: true,
   lastReminderCheckAt: null,
+}
+
+function normalizePin(pin) {
+  return String(pin ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 4)
 }
 
 function cloneDefaultSettings() {
@@ -38,6 +45,10 @@ export function saveAppSettings(nextSettings) {
   const mergedSettings = {
     ...loadAppSettings(),
     ...nextSettings,
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextSettings ?? {}, 'appLockPin')) {
+    mergedSettings.appLockPin = normalizePin(nextSettings.appLockPin) || '1234'
   }
 
   window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings))
@@ -91,7 +102,7 @@ export function setAppUnlocked(unlocked) {
 }
 
 export function verifyAppLockPin(pin) {
-  return String(pin) === String(loadAppSettings().appLockPin ?? '1234')
+  return normalizePin(pin) === normalizePin(loadAppSettings().appLockPin ?? '1234')
 }
 
 export function subscribeToAppLock(listener) {

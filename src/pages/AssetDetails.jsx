@@ -16,6 +16,10 @@ function profitTone(value) {
   return value >= 0 ? 'text-emerald-400' : 'text-rose-400'
 }
 
+function isFixedIncomeCategory(category) {
+  return category.group === 'Fixed Income'
+}
+
 export default function AssetDetails() {
   const { categoryId } = useParams()
   const category = getCategoryDetails(categoryId)
@@ -55,19 +59,25 @@ export default function AssetDetails() {
 
           <div className="mt-5 grid grid-cols-3 gap-3">
             <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-              <p className="metric-label">Value</p>
+              <p className="metric-label">
+                {isFixedIncomeCategory(category) ? 'Total' : 'Value'}
+              </p>
               <p className="mt-2 text-sm font-semibold text-wn-text">
                 {formatCurrency(category.value)}
               </p>
             </div>
             <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-              <p className="metric-label">Invested</p>
+              <p className="metric-label">
+                {isFixedIncomeCategory(category) ? 'Deposit' : 'Invested'}
+              </p>
               <p className="mt-2 text-sm font-semibold text-wn-text">
                 {formatCurrency(category.invested)}
               </p>
             </div>
             <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-              <p className="metric-label">P/L</p>
+              <p className="metric-label">
+                {isFixedIncomeCategory(category) ? 'Interest' : 'P/L'}
+              </p>
               <p className={`mt-2 text-sm font-semibold ${profitTone(category.profitLoss)}`}>
                 {formatCurrency(category.profitLoss)}
               </p>
@@ -86,19 +96,31 @@ export default function AssetDetails() {
                 <ArrowUpRight className="text-wn-muted" size={18} />
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className={`mt-4 grid gap-3 ${isFixedIncomeCategory(category) ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                  <p className="metric-label">Value</p>
+                  <p className="metric-label">
+                    {isFixedIncomeCategory(category) ? 'Total' : 'Value'}
+                  </p>
                   <p className="mt-2 text-sm font-semibold text-wn-text">
                     {formatCurrency(item.value ?? 0)}
                   </p>
                 </div>
                 <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                  <p className="metric-label">Invested</p>
+                  <p className="metric-label">
+                    {isFixedIncomeCategory(category) ? 'Deposit' : 'Invested'}
+                  </p>
                   <p className="mt-2 text-sm font-semibold text-wn-text">
                     {formatCurrency(item.invested ?? 0)}
                   </p>
                 </div>
+                {isFixedIncomeCategory(category) ? (
+                  <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
+                    <p className="metric-label">Interest</p>
+                    <p className={`mt-2 text-sm font-semibold ${profitTone((item.value ?? 0) - (item.invested ?? 0))}`}>
+                      {formatCurrency((item.value ?? 0) - (item.invested ?? 0))}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </article>
           ))

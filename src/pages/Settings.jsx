@@ -123,8 +123,8 @@ export default function Settings() {
   return (
     <PageShell
       eyebrow="Preferences"
-      title="Tune the experience"
-      description="Manage backups, app lock, reminders, exports, and your local-first device settings."
+      title="Application Settings"
+      description="Manage backup, security, reminders, exports, and device-level preferences."
     >
       <div className="space-y-4">
         <article className="glass-card space-y-3 p-5">
@@ -132,7 +132,7 @@ export default function Settings() {
             <div>
               <p className="section-title">Backup & Restore</p>
               <p className="mt-1 text-sm text-wn-muted">
-                Export local data, restore from file, or download CSV history.
+                Export local data, restore from file, or download transaction history.
               </p>
             </div>
             <span className="pill-chip">Local only</span>
@@ -153,7 +153,7 @@ export default function Settings() {
             icon={Upload}
             iconTone="from-emerald-500 to-green-400"
             title="Restore from File"
-            subtitle="Replace current local storage with a valid backup file."
+            subtitle="Replace current local data with a valid backup file."
           >
             <button
               type="button"
@@ -168,7 +168,7 @@ export default function Settings() {
             icon={RefreshCw}
             iconTone="from-violet-500 to-fuchsia-400"
             title="Export Transactions CSV"
-            subtitle="Download your transaction list in spreadsheet-friendly format."
+            subtitle="Download transaction records in a spreadsheet-ready format."
           >
             <button type="button" onClick={downloadTransactionsCsv} className="secondary-button px-3 py-2">
               CSV
@@ -192,7 +192,7 @@ export default function Settings() {
           <div>
             <p className="section-title">Appearance & Security</p>
             <p className="mt-1 text-sm text-wn-muted">
-              Customize the shell and protect access on this device.
+              Adjust application appearance and protect access on this device.
             </p>
           </div>
 
@@ -200,7 +200,7 @@ export default function Settings() {
             icon={Moon}
             iconTone="from-slate-500 to-slate-700"
             title="Dark Mode"
-            subtitle={settings.themeMode === 'light' ? 'Light shell is active' : 'Dark shell is active'}
+            subtitle={settings.themeMode === 'light' ? 'Light theme is enabled' : 'Dark theme is enabled'}
           >
             <button
               type="button"
@@ -221,7 +221,7 @@ export default function Settings() {
             icon={Lock}
             iconTone="from-amber-500 to-yellow-400"
             title="App Lock"
-            subtitle={settings.appLockEnabled ? 'PIN lock is enabled' : 'PIN lock is disabled'}
+            subtitle={settings.appLockEnabled ? 'PIN protection is enabled' : 'PIN protection is disabled'}
           >
             <button
               type="button"
@@ -243,7 +243,11 @@ export default function Settings() {
             <input
               type="password"
               value={pinDraft}
-              onChange={(event) => setPinDraft(event.target.value)}
+              inputMode="numeric"
+              maxLength={4}
+              onChange={(event) =>
+                setPinDraft(event.target.value.replace(/\D/g, '').slice(0, 4))
+              }
               className="form-input"
             />
           </label>
@@ -252,9 +256,17 @@ export default function Settings() {
             <button
               type="button"
               onClick={() => {
+                const normalizedPin = pinDraft.replace(/\D/g, '').slice(0, 4)
+
+                if (normalizedPin.length !== 4) {
+                  setStatusMessage('App lock PIN must be exactly 4 digits.')
+                  return
+                }
+
                 saveAppSettings({
-                  appLockPin: pinDraft || '1234',
+                  appLockPin: normalizedPin,
                 })
+                setPinDraft(normalizedPin)
                 setStatusMessage('App lock PIN updated.')
               }}
               className="primary-button"
@@ -282,7 +294,7 @@ export default function Settings() {
           <div>
             <p className="section-title">Automation Helpers</p>
             <p className="mt-1 text-sm text-wn-muted">
-              Keep reminders and auto backup indicators in sync with your local usage.
+              Keep reminder and backup indicators aligned with local activity.
             </p>
           </div>
 
@@ -290,7 +302,7 @@ export default function Settings() {
             icon={ShieldCheck}
             iconTone="from-emerald-500 to-green-400"
             title="Reminders"
-            subtitle={settings.remindersEnabled ? 'Reminders are enabled' : 'Reminders are disabled'}
+            subtitle={settings.remindersEnabled ? 'Reminder alerts are enabled' : 'Reminder alerts are disabled'}
           >
             <button
               type="button"
@@ -312,7 +324,7 @@ export default function Settings() {
             icon={RefreshCw}
             iconTone="from-sky-500 to-cyan-400"
             title="Auto Backup"
-            subtitle={settings.autoBackupEnabled ? 'Simulated backup is enabled' : 'Simulated backup is disabled'}
+            subtitle={settings.autoBackupEnabled ? 'Backup simulation is enabled' : 'Backup simulation is disabled'}
           >
             <button
               type="button"
@@ -351,7 +363,7 @@ export default function Settings() {
             icon={Database}
             iconTone="from-sky-500 to-blue-400"
             title="Data Management"
-            subtitle="Clear or Manage Data"
+            subtitle="Clear locally stored application data"
           >
             <button
               type="button"
