@@ -106,11 +106,12 @@ function GoldSilverGlyph({ size = 22 }) {
 function FixedDepositGlyph({ size = 22 }) {
   return (
     <GlyphBase size={size}>
-      <rect {...strokeProps} x="5.5" y="6" width="13" height="12" rx="2.5" />
-      <path {...strokeProps} d="M9 10.25H15" />
-      <path {...strokeProps} d="M9 13.75H13.5" />
-      <path {...strokeProps} d="M7.75 6V4.75" />
-      <path {...strokeProps} d="M16.25 6V4.75" />
+      <path
+        {...strokeProps}
+        d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z"
+      />
+      <path {...strokeProps} d="M16 10h.01" />
+      <path {...strokeProps} d="M2 8v1a2 2 0 0 0 2 2h1" />
     </GlyphBase>
   )
 }
@@ -118,13 +119,10 @@ function FixedDepositGlyph({ size = 22 }) {
 function RecurringDepositGlyph({ size = 22 }) {
   return (
     <GlyphBase size={size}>
-      <circle {...strokeProps} cx="12" cy="12" r="4" />
-      <path {...strokeProps} d="M12 9.9V14.1" />
-      <path {...strokeProps} d="M10.1 12H13.9" />
-      <path {...strokeProps} d="M7.2 8.1C7.8 7.14 8.72 6.38 9.8 5.95L8.9 4.9" />
-      <path {...strokeProps} d="M16.8 15.9C16.2 16.86 15.28 17.62 14.2 18.05L15.1 19.1" />
-      <path {...strokeProps} d="M16.85 8.2C15.95 6.88 14.47 6 12.8 5.85" />
-      <path {...strokeProps} d="M7.15 15.8C8.05 17.12 9.53 18 11.2 18.15" />
+      <circle {...strokeProps} cx="12" cy="12" r="10" />
+      <path {...strokeProps} d="m15 9-6 6" />
+      <path {...strokeProps} d="M9 9h.01" />
+      <path {...strokeProps} d="M15 15h.01" />
     </GlyphBase>
   )
 }
@@ -132,9 +130,12 @@ function RecurringDepositGlyph({ size = 22 }) {
 function PpfGlyph({ size = 22 }) {
   return (
     <GlyphBase size={size}>
-      <path {...strokeProps} d="M12 5.2C14.3 7.05 16.95 7.82 18.4 8.05V12.15C18.4 15.38 16 17.93 12 19C8 17.93 5.6 15.38 5.6 12.15V8.05C7.05 7.82 9.7 7.05 12 5.2Z" />
-      <path {...strokeProps} d="M12 9.25V14.8" />
-      <path {...strokeProps} d="M12 9.25C10.55 9.25 9.3 10.05 8.8 11.35C10 10.95 11.2 11.3 12 12.25C12.8 11.3 14 10.95 15.2 11.35C14.7 10.05 13.45 9.25 12 9.25Z" />
+      <path {...strokeProps} d="M10 18v-7" />
+      <path {...strokeProps} d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z" />
+      <path {...strokeProps} d="M14 18v-7" />
+      <path {...strokeProps} d="M18 18v-7" />
+      <path {...strokeProps} d="M3 22h18" />
+      <path {...strokeProps} d="M6 18v-7" />
     </GlyphBase>
   )
 }
@@ -249,22 +250,27 @@ export const CATEGORY_VISUALS = {
   epf: {
     icon: EpfGlyph,
     tone: 'from-violet-500 to-fuchsia-400',
+    sizeMultiplier: 1.18,
   },
   nps: {
     icon: NpsGlyph,
     tone: 'from-blue-500 to-indigo-500',
+    sizeMultiplier: 1.18,
   },
   bonds: {
     icon: BondsGlyph,
     tone: 'from-orange-500 to-amber-400',
+    sizeMultiplier: 1.18,
   },
   lic: {
     icon: LicGlyph,
     tone: 'from-blue-600 to-indigo-500',
+    sizeMultiplier: 1.18,
   },
   realEstate: {
     icon: RealEstateGlyph,
     tone: 'from-emerald-500 to-green-400',
+    sizeMultiplier: 1.18,
   },
   crypto: {
     icon: CryptoGlyph,
@@ -280,15 +286,16 @@ export function CategoryIconBadge({ categoryId, size = 20, className = 'h-11 w-1
   const visual = getCategoryVisual(categoryId)
   const Icon = visual.icon
   const needsInnerPlate = categoryId === 'goldSilver'
+  const renderedSize = Math.round(size * (visual.sizeMultiplier ?? 1))
 
   return (
     <div className={`icon-badge bg-gradient-to-br ${className} ${visual.tone}`}>
       {needsInnerPlate ? (
         <div className="flex h-[76%] w-[76%] items-center justify-center rounded-[14px] bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-          <Icon size={size} />
+          <Icon size={renderedSize} />
         </div>
       ) : (
-        <Icon size={size} />
+        <Icon size={renderedSize} />
       )}
     </div>
   )

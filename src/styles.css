@@ -53,10 +53,19 @@ select {
     opacity 180ms ease;
 }
 
-select,
-select option {
+select {
   color: var(--color-wn-text);
   background-color: var(--color-wn-card);
+}
+
+option {
+  color: #edf4ff;
+  background-color: #121826;
+}
+
+:root[data-theme='light'] option {
+  color: #122033;
+  background-color: #ffffff;
 }
 
 button:active,

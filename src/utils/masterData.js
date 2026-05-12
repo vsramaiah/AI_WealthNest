@@ -1,4 +1,5 @@
 import {
+  deleteMutualFundMaster,
   getMutualFundMasterFormValues,
   getMutualFundMasters,
   mutualFundMasterSchema,
@@ -109,6 +110,25 @@ function updateGenericMasterRecord(category, id, fields) {
   })
 
   return updatedItem
+}
+
+function deleteGenericMasterRecord(category, id) {
+  const data = loadData()
+  const nextItems = (data.masters[category] ?? []).filter((item) => item.id !== id)
+
+  if (nextItems.length === (data.masters[category] ?? []).length) {
+    return false
+  }
+
+  saveData({
+    ...data,
+    masters: {
+      ...data.masters,
+      [category]: nextItems,
+    },
+  })
+
+  return true
 }
 
 function createGenericMasterRecord(category, fields) {
@@ -288,6 +308,7 @@ export const masterCategoryConfigs = {
     listRecords: () => getMutualFundMasters(),
     saveRecord: (fields) => saveMutualFundMaster(fields),
     updateRecord: (id, fields) => updateMutualFundMaster(id, fields),
+    deleteRecord: (id) => deleteMutualFundMaster(id),
     getInitialValues: (record) => getMutualFundMasterFormValues(record),
     buildCard: (record) => ({
       title: record.fundName || 'Mutual Fund',
@@ -326,6 +347,7 @@ export const masterCategoryConfigs = {
     listRecords: () => loadData().masters.rd ?? [],
     saveRecord: (fields) => createGenericMasterRecord('rd', fields),
     updateRecord: (id, fields) => updateGenericMasterRecord('rd', id, fields),
+    deleteRecord: (id) => deleteGenericMasterRecord('rd', id),
     buildCard: (record) => ({
       title: record.bankName || 'RD Account',
       identifier: record.accountNumber ? `A/C ${record.accountNumber}` : 'Account unavailable',
@@ -358,6 +380,7 @@ export const masterCategoryConfigs = {
     listRecords: () => loadData().masters.lic ?? [],
     saveRecord: (fields) => createGenericMasterRecord('lic', fields),
     updateRecord: (id, fields) => updateGenericMasterRecord('lic', id, fields),
+    deleteRecord: (id) => deleteGenericMasterRecord('lic', id),
     buildCard: (record) => ({
       title: record.policyName || 'LIC Policy',
       identifier: record.policyNumber ? `Policy ${record.policyNumber}` : 'Policy unavailable',
@@ -389,6 +412,7 @@ export const masterCategoryConfigs = {
     listRecords: () => loadData().masters.ppf ?? [],
     saveRecord: (fields) => createGenericMasterRecord('ppf', fields),
     updateRecord: (id, fields) => updateGenericMasterRecord('ppf', id, fields),
+    deleteRecord: (id) => deleteGenericMasterRecord('ppf', id),
     buildCard: (record) => ({
       title: record.bankName || 'PPF Account',
       identifier: record.accountNumber ? `A/C ${record.accountNumber}` : 'Account unavailable',
@@ -498,6 +522,16 @@ export function saveMasterRecord(category, fields, existingId = null) {
 export function toggleMasterRecordStatus(category, record) {
   const nextStatus = getRecordStatus(record) === 'ACTIVE' ? 'CLOSED' : 'ACTIVE'
   return saveMasterRecord(category, { ...record, status: nextStatus }, record.id)
+}
+
+export function deleteMasterRecord(category, id) {
+  const config = getMasterCategoryConfig(category)
+
+  if (!config?.deleteRecord) {
+    return false
+  }
+
+  return config.deleteRecord(id)
 }
 
 export function buildMasterCardMeta(category, record) {

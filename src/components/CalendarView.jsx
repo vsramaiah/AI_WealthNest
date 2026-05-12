@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getCalendarMonthModel } from '../utils/calendarEvents'
 
 const EVENT_STYLES = {
@@ -31,6 +31,28 @@ export default function CalendarView() {
   const [selectedDay, setSelectedDay] = useState(null)
   const model = useMemo(() => getCalendarMonthModel(viewDate), [viewDate])
 
+  useEffect(() => {
+    if (!selectedDay) {
+      return undefined
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setSelectedDay(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedDay])
+
   return (
     <section className="space-y-4">
       {model.reminderBanners.length > 0 ? (
@@ -61,6 +83,7 @@ export default function CalendarView() {
             onClick={() =>
               setViewDate((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))
             }
+            aria-label="Previous month"
             className="secondary-button h-11 w-11 rounded-2xl px-0 py-0"
           >
             <ChevronLeft size={18} strokeWidth={2.1} />
@@ -76,6 +99,7 @@ export default function CalendarView() {
             onClick={() =>
               setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))
             }
+            aria-label="Next month"
             className="secondary-button h-11 w-11 rounded-2xl px-0 py-0"
           >
             <ChevronRight size={18} strokeWidth={2.1} />
@@ -89,38 +113,65 @@ export default function CalendarView() {
             </div>
           ))}
 
-          {model.days.map((day) => (
-            <button
-              key={day.dateKey}
-              type="button"
-              onClick={() => day.hasEvents && setSelectedDay(day)}
-              className={[
-                'min-h-[92px] rounded-[20px] border p-2 text-left',
-                day.isCurrentMonth ? 'border-white/8 bg-white/[0.04]' : 'border-white/5 bg-white/[0.02] opacity-45',
-                day.isToday ? 'ring-1 ring-wn-accent' : '',
-                day.hasEvents ? 'shadow-[0_14px_28px_rgba(0,0,0,0.18)]' : '',
-              ].join(' ')}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className={`text-xs font-semibold ${day.isToday ? 'text-wn-accent' : 'text-wn-text'}`}>
-                  {day.dayNumber}
-                </span>
-                {day.hasEvents ? <span className="h-2 w-2 rounded-full bg-wn-accent" /> : null}
-              </div>
+          {model.days.map((day) => {
+            const dayClassName = [
+              'min-h-[74px] rounded-[18px] border p-1.5 text-left sm:min-h-[92px] sm:rounded-[20px] sm:p-2',
+              day.isCurrentMonth ? 'border-white/8 bg-white/[0.04]' : 'border-white/5 bg-white/[0.02] opacity-45',
+              day.isToday ? 'ring-1 ring-wn-accent' : '',
+              day.hasEvents ? 'shadow-[0_14px_28px_rgba(0,0,0,0.18)]' : '',
+            ].join(' ')
 
-              {day.hasEvents ? (
-                <p className="mt-3 truncate text-[10px] font-semibold text-wn-text">
-                  {formatCurrency(day.totalAmount)}
-                </p>
-              ) : null}
-            </button>
-          ))}
+            const content = (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-[11px] font-semibold sm:text-xs ${day.isToday ? 'text-wn-accent' : 'text-wn-text'}`}>
+                    {day.dayNumber}
+                  </span>
+                  {day.hasEvents ? <span className="h-1.5 w-1.5 rounded-full bg-wn-accent sm:h-2 sm:w-2" /> : null}
+                </div>
+
+                {day.hasEvents ? (
+                  <p className="mt-2 truncate text-[9px] font-semibold text-wn-text sm:mt-3 sm:text-[10px]">
+                    {formatCurrency(day.totalAmount)}
+                  </p>
+                ) : null}
+              </>
+            )
+
+            if (!day.hasEvents) {
+              return (
+                <div key={day.dateKey} className={dayClassName}>
+                  {content}
+                </div>
+              )
+            }
+
+            return (
+              <button
+                key={day.dateKey}
+                type="button"
+                onClick={() => setSelectedDay(day)}
+                className={dayClassName}
+              >
+                {content}
+              </button>
+            )
+          })}
         </div>
       </article>
 
       {selectedDay ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 px-4 pb-6 pt-10 backdrop-blur sm:items-center">
-          <div className="glass-card w-full max-w-md p-5">
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto bg-black/55 px-4 pb-6 pt-10 backdrop-blur sm:items-center"
+          onClick={() => setSelectedDay(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Day details for ${formatDate(selectedDay.date)}`}
+            className="glass-card w-full max-w-md p-5"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">Day Details</p>
@@ -140,7 +191,7 @@ export default function CalendarView() {
               </button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 max-h-[60vh] space-y-3 overflow-y-auto pr-1">
               {selectedDay.events.map((event) => (
                 <article key={event.id} className="rounded-[22px] border border-white/8 bg-white/[0.04] p-4">
                   <div className="flex items-center justify-between gap-3">

@@ -9,13 +9,14 @@ export default function BottomNav() {
           <NavLink
             key={path}
             to={path}
+            aria-label={label}
             className={({ isActive }) =>
               [
                 'flex flex-col items-center justify-center gap-1 rounded-[22px] px-2 py-2 text-[11px] font-medium',
                 path === '/add'
                   ? isActive
                     ? 'bg-wn-accent-strong text-[#04110a] shadow-[0_16px_36px_rgba(34,197,94,0.32)]'
-                    : 'bg-[linear-gradient(180deg,rgba(100,250,163,0.98),rgba(45,211,111,0.92))] text-[#04110a] shadow-[0_14px_32px_rgba(34,197,94,0.24)]'
+                    : 'border border-emerald-400/20 bg-emerald-500/12 text-emerald-200 shadow-[0_12px_28px_rgba(34,197,94,0.14)] hover:bg-emerald-500/18 hover:text-emerald-100'
                   : isActive
                     ? 'bg-white/[0.06] text-emerald-300'
                     : 'text-wn-muted hover:bg-white/[0.04] hover:text-wn-text',

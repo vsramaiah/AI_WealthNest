@@ -291,6 +291,25 @@ export function updateMutualFundMaster(id, fields) {
   return updatedMaster
 }
 
+export function deleteMutualFundMaster(id) {
+  const data = loadData()
+  const nextMasters = data.masters.mf.filter((item) => item.id !== id)
+
+  if (nextMasters.length === data.masters.mf.length) {
+    return false
+  }
+
+  saveData({
+    ...data,
+    masters: {
+      ...data.masters,
+      mf: nextMasters,
+    },
+  })
+
+  return true
+}
+
 export function calculateMutualFundTransaction(fields) {
   const amount = toNumber(fields.amount)
   const nav = toNumber(fields.nav)

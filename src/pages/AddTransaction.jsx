@@ -5,6 +5,7 @@ import DynamicForm from '../components/DynamicForm'
 import PageShell from '../components/PageShell'
 import {
   buildMasterCardMeta,
+  deleteMasterRecord,
   getMasterFormInitialValues,
   buildSlaveInitialValues,
   buildSlaveRawData,
@@ -63,7 +64,7 @@ function CategoryCard({ option, onSelect }) {
   )
 }
 
-function RecordCard({ category, record, meta, onEdit, onToggleStatus, statusActionLabel }) {
+function RecordCard({ category, record, meta, onDelete, onEdit, onToggleStatus, statusActionLabel }) {
   return (
     <article className="glass-card p-3.5">
       <div className="flex items-start justify-between gap-3">
@@ -91,14 +92,25 @@ function RecordCard({ category, record, meta, onEdit, onToggleStatus, statusActi
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => onEdit(record)} className="secondary-button py-2.5 text-sm">
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={() => onDelete(record)}
+          className="inline-flex items-center justify-center rounded-2xl border border-rose-500/35 bg-rose-300/22 px-4 py-2.5 text-sm font-medium text-rose-950 hover:bg-rose-300/28"
+        >
+          Delete
+        </button>
+        <button
+          type="button"
+          onClick={() => onEdit(record)}
+          className="inline-flex items-center justify-center rounded-2xl border border-sky-500/35 bg-sky-300/20 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-300/26"
+        >
           Edit
         </button>
         <button
           type="button"
           onClick={() => onToggleStatus(record)}
-          className="inline-flex items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-wn-text hover:bg-white/[0.06]"
+          className="inline-flex items-center justify-center rounded-2xl border border-amber-500/35 bg-amber-300/22 px-4 py-2.5 text-sm font-medium text-amber-950 hover:bg-amber-300/28"
         >
           {statusActionLabel}
         </button>
@@ -219,6 +231,28 @@ export default function AddTransaction() {
     toggleMasterRecordStatus(category, record)
     setRefreshKey((value) => value + 1)
     setSaveMessage(record.status === 'ACTIVE' ? 'Master record closed.' : 'Master record reopened.')
+  }
+
+  function handleMasterDelete(category, record) {
+    const confirmed = window.confirm('Delete this account record? This action cannot be undone.')
+
+    if (!confirmed) {
+      return
+    }
+
+    const deleted = deleteMasterRecord(category, record.id)
+
+    if (!deleted) {
+      setSaveMessage('Account record could not be deleted.')
+      return
+    }
+
+    if (editingMaster?.id === record.id) {
+      setEditingMaster(null)
+    }
+
+    setRefreshKey((value) => value + 1)
+    setSaveMessage('Account record deleted.')
   }
 
   function handleSlaveCategorySelect(category) {
@@ -369,6 +403,7 @@ export default function AddTransaction() {
                                 category={category}
                                 record={record}
                                 meta={meta}
+                                onDelete={() => handleMasterDelete(category, record)}
                                 onEdit={() => handleMasterEdit(category, record)}
                                 onToggleStatus={() => handleMasterStatusToggle(category, record)}
                                 statusActionLabel={meta.status === 'ACTIVE' ? 'Close' : 'Reopen'}

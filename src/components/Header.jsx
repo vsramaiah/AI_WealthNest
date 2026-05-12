@@ -1,8 +1,31 @@
-import { Bell, PencilLine, Search, SlidersHorizontal } from 'lucide-react'
+import { List, PencilLine, Plus, Settings2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { loadAppSettings, saveAppSettings, subscribeToAppSettings } from '../utils/appSettings'
 import BrandMark from './BrandMark'
+
+const HEADER_META = {
+  '/home': {
+    title: (investorName) => `Hi, ${investorName || 'Investor'}`,
+    subtitle: 'Monitor balances, allocation, and upcoming activity',
+  },
+  '/portfolio': {
+    title: 'Portfolio',
+    subtitle: 'A consolidated view across all investment categories',
+  },
+  '/add': {
+    title: 'Add Transaction',
+    subtitle: 'Create account records and capture investment entries',
+  },
+  '/transactions': {
+    title: 'Transactions',
+    subtitle: 'Review transaction history and refine results with filters',
+  },
+  '/settings': {
+    title: 'Settings',
+    subtitle: 'Security, backup, and application preferences',
+  },
+}
 
 function getHeaderMeta(pathname, investorName = 'Investor') {
   if (pathname.startsWith('/portfolio/')) {
@@ -12,30 +35,11 @@ function getHeaderMeta(pathname, investorName = 'Investor') {
     }
   }
 
-  const pageMeta = {
-    '/home': {
-      title: `Hi, ${investorName || 'Investor'}`,
-      subtitle: 'Monitor balances, allocation, and upcoming activity',
-    },
-    '/portfolio': {
-      title: 'Portfolio',
-      subtitle: 'A consolidated view across all investment categories',
-    },
-    '/add': {
-      title: 'Add Transaction',
-      subtitle: 'Create account records and capture investment entries',
-    },
-    '/transactions': {
-      title: 'Transactions',
-      subtitle: 'Review transaction history and refine results with filters',
-    },
-    '/settings': {
-      title: 'Settings',
-      subtitle: 'Security, backup, and application preferences',
-    },
+  const entry = HEADER_META[pathname] ?? HEADER_META['/home']
+  return {
+    title: typeof entry.title === 'function' ? entry.title(investorName) : entry.title,
+    subtitle: entry.subtitle,
   }
-
-  return pageMeta[pathname] ?? pageMeta['/home']
 }
 
 function ActionButton({ children, onClick, label }) {
@@ -115,7 +119,7 @@ export default function Header() {
                 label="Open transactions"
                 onClick={() => navigate('/transactions')}
               >
-                <Search size={18} strokeWidth={2.1} />
+                <List size={18} strokeWidth={2.1} />
               </ActionButton>
             ) : null}
             <ActionButton
@@ -123,9 +127,9 @@ export default function Header() {
               onClick={() => navigate(pathname === '/transactions' ? '/add' : '/settings')}
             >
               {pathname === '/transactions' ? (
-                <SlidersHorizontal size={18} strokeWidth={2.1} />
+                <Plus size={18} strokeWidth={2.1} />
               ) : (
-                <Bell size={18} strokeWidth={2.1} />
+                <Settings2 size={18} strokeWidth={2.1} />
               )}
             </ActionButton>
           </div>
