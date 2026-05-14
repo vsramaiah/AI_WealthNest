@@ -177,6 +177,7 @@ export default function DynamicForm({
   initialValues = null,
   submitLabel = 'Review Transaction',
   onSubmit,
+  isSubmitting = false,
   showCalculatedSummary = true,
   title = 'Transaction Details',
   description = 'Fields are generated dynamically from the selected category schema.',
@@ -227,6 +228,10 @@ export default function DynamicForm({
 
   function handleSubmit(event) {
     event.preventDefault()
+
+    if (isSubmitting) {
+      return
+    }
 
     const nextErrors = visibleSchema.reduce((collection, field) => {
       const error = validateField(field, values[field.name], values)
@@ -322,8 +327,12 @@ export default function DynamicForm({
         ) : null}
       </div>
 
-      <button type="submit" className="primary-button w-full">
-        {submitLabel}
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className={`primary-button w-full ${isSubmitting ? 'cursor-not-allowed opacity-70' : ''}`}
+      >
+        {isSubmitting ? 'Saving...' : submitLabel}
       </button>
     </form>
   )

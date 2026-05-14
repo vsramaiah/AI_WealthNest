@@ -1,11 +1,11 @@
-import { ArrowUpRight, Eye, EyeOff, Layers3, TrendingUp } from 'lucide-react'
+import { ArrowUpRight, Eye, EyeOff, Layers3, PencilLine, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
 import CalendarView from '../components/CalendarView'
 import PageShell from '../components/PageShell'
-import { loadAppSettings } from '../utils/appSettings'
+import { loadAppSettings, saveAppSettings } from '../utils/appSettings'
 import { getPortfolioOverview } from '../utils/portfolioSummary'
 import { getReminders, generateSipSchedule } from '../utils/reminders'
-import { useMemo, useState } from 'react'
 
 const GROUP_GRADIENTS = [
   'from-emerald-300/30 to-emerald-500/10',
@@ -61,40 +61,85 @@ function buildAllocationGradient(groups) {
 
 export default function Home() {
   const overview = useMemo(() => getPortfolioOverview(), [])
-  const settings = loadAppSettings()
+  const [settings, setSettings] = useState(() => loadAppSettings())
   const [showNetWorth, setShowNetWorth] = useState(true)
   const reminders = settings.remindersEnabled ? getReminders().slice(0, 3) : []
   const sipSchedule = generateSipSchedule().slice(0, 3)
   const donutBackground = buildAllocationGradient(overview.groupedAllocation)
 
+  function handleInvestorNameEdit() {
+    const currentName = settings.investorName ?? 'Investor'
+    const nextName = window.prompt('Enter the display name for the dashboard greeting.', currentName)
+
+    if (nextName === null) {
+      return
+    }
+
+    const normalizedName = nextName.trim().replace(/\s+/g, ' ').slice(0, 24) || 'Investor'
+    saveAppSettings({
+      investorName: normalizedName,
+    })
+    setSettings((current) => ({
+      ...current,
+      investorName: normalizedName,
+    }))
+  }
+
   return (
-    <PageShell
-      eyebrow="Overview"
-      title="Portfolio Overview"
-      description="Review net worth, allocation, reminders, and upcoming investment activity in one place."
-    >
+    <PageShell>
       <div className="space-y-4">
-        <article className="glass-card overflow-hidden p-5">
+        <section className="rounded-[30px] border border-white/8 bg-[linear-gradient(180deg,rgba(12,20,34,0.98),rgba(8,15,28,0.94))] p-5 shadow-[0_24px_50px_rgba(0,0,0,0.34)]">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="metric-label">Total Net Worth</p>
-              <p className="mt-3 text-[2.25rem] font-semibold tracking-tight text-wn-text">
-                {showNetWorth ? formatCurrency(overview.totalNetWorth) : '₹x,xxx'}
-              </p>
-              <p className="mt-2 flex items-center gap-2 text-sm font-medium text-emerald-400">
-                <TrendingUp size={16} strokeWidth={2.2} />
-                Portfolio data is available on this device
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="truncate text-[2rem] font-semibold tracking-tight text-wn-text">
+                  Hi, {settings.investorName || 'Investor'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleInvestorNameEdit}
+                  aria-label="Edit dashboard name"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/8 bg-white/[0.04] text-wn-text hover:bg-white/[0.06]"
+                >
+                  <PencilLine size={15} strokeWidth={2.1} />
+                </button>
+              </div>
+              <p className="mt-2 max-w-xs text-sm leading-6 text-wn-muted">
+                Welcome back! Here's your wealth overview.
               </p>
             </div>
+
             <button
               type="button"
-              aria-label={showNetWorth ? 'Hide total net worth' : 'Show total net worth'}
+              aria-label={showNetWorth ? 'Hide portfolio value' : 'Show portfolio value'}
               onClick={() => setShowNetWorth((current) => !current)}
               className="secondary-button h-11 w-11 rounded-2xl px-0 py-0"
             >
               {showNetWorth ? <Eye size={18} strokeWidth={2.2} /> : <EyeOff size={18} strokeWidth={2.2} />}
             </button>
           </div>
+
+          <article className="mt-5 overflow-hidden rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(19,30,50,0.96),rgba(13,21,37,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="metric-label">Portfolio Value</p>
+                <p className="mt-3 text-[2.35rem] font-semibold tracking-tight text-wn-text">
+                  {showNetWorth ? formatCurrency(overview.totalNetWorth) : 'Rs x,xxx'}
+                </p>
+                <p className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-400">
+                  <TrendingUp size={16} strokeWidth={2.2} />
+                  {overview.groupedAllocation.length} asset groups tracked
+                </p>
+              </div>
+
+              <div className="flex h-24 w-24 items-end justify-end">
+                <svg viewBox="0 0 96 72" className="h-20 w-20 text-emerald-400" aria-hidden="true" fill="none">
+                  <path d="M8 58L24 46L38 60L56 28L72 34L88 12" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="88" cy="12" r="5" fill="currentColor" />
+                </svg>
+              </div>
+            </div>
+          </article>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
             <div className="rounded-[24px] border border-white/6 bg-white/[0.04] p-4">
@@ -108,7 +153,8 @@ export default function Home() {
               <p className="mt-2 text-xl font-semibold text-wn-text">{reminders.length}</p>
             </div>
           </div>
-        </article>
+        </section>
+
         <article className="glass-card p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -188,9 +234,13 @@ export default function Home() {
                 Generated from your active mutual fund account records.
               </p>
             </div>
-            <div className="icon-badge h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-400">
+            <Link
+              to="/upcoming-sips"
+              className="icon-badge h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-400"
+              aria-label="View all upcoming SIPs"
+            >
               <ArrowUpRight size={18} strokeWidth={2.2} />
-            </div>
+            </Link>
           </div>
 
           <div className="mt-5 space-y-3">
@@ -217,6 +267,14 @@ export default function Home() {
               </p>
             )}
           </div>
+
+          {sipSchedule.length > 0 ? (
+            <div className="mt-4">
+              <Link to="/upcoming-sips" className="secondary-button w-full">
+                View All
+              </Link>
+            </div>
+          ) : null}
         </article>
 
         <article className="glass-card p-5">

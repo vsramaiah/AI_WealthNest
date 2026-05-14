@@ -12,7 +12,11 @@ function normalizeDate(dateString) {
 }
 
 function formatDate(date) {
-  return date.toISOString().slice(0, 10)
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
 }
 
 function getSipDueDay(master) {
@@ -52,6 +56,7 @@ export function generateSipSchedule() {
         dueDate: nextSipDate ? formatDate(nextSipDate) : 'Not scheduled',
       }
     })
+    .sort((left, right) => String(left.dueDate).localeCompare(String(right.dueDate)))
 }
 
 export function getReminders() {

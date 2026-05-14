@@ -780,6 +780,12 @@ export function calculateGoldSilver(fields) {
   }
 }
 
+export function calculateRealEstate(fields) {
+  return {
+    totalValue: toNumber(fields.purchaseValue),
+  }
+}
+
 export function calculateFdMaster(fields) {
   const principal = toNumber(fields.depositAmount)
   const rate = toNumber(fields.interestRate)
@@ -863,6 +869,8 @@ export function calculateOtherInvestment(category, fields) {
       return calculateEpf(fields)
     case 'lic':
       return calculateLicMaster(fields)
+    case realEstateCategory:
+      return calculateRealEstate(fields)
     default:
       return {}
   }

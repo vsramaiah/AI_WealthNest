@@ -1,4 +1,4 @@
-import { getMutualFundSummary } from './mutualFunds'
+import { getMutualFundMasters, getMutualFundSummary } from './mutualFunds'
 import {
   bondsCategory,
   cryptoCategory,
@@ -28,29 +28,64 @@ function buildSummary(categoryId, summary) {
     value: summary.value ?? 0,
     invested: summary.invested ?? 0,
     profitLoss: (summary.value ?? 0) - (summary.invested ?? 0),
+    grossValue: summary.grossValue ?? 0,
+    charges: summary.charges ?? 0,
+    totalUnits: summary.totalUnits ?? 0,
+    totalGrams: summary.totalGrams ?? 0,
     details: summary.details ?? [],
   }
 }
 
 function getStockSummary() {
   const holdings = getStockHoldings()
+  const groupedMetrics = loadData().transactions
+    .filter((txn) => txn.category === 'stocks')
+    .reduce((collection, txn) => {
+      const rawData = getTransactionRawData(txn)
+      const ticker = String(rawData.ticker ?? '').trim() || txn.id
+      const current = collection[ticker] ?? {
+        grossValue: 0,
+        charges: 0,
+        totalAmount: 0,
+      }
+
+      current.grossValue += toNumber(txn.calculated?.grossValue)
+      current.charges += toNumber(rawData.charges)
+      current.totalAmount += toNumber(txn.calculated?.totalAmount)
+      collection[ticker] = current
+
+      return collection
+    }, {})
+
   const aggregate = holdings.reduce(
     (summary, holding) => {
-      summary.value += toNumber(holding.totalInvested)
-      summary.invested += toNumber(holding.totalInvested)
+      const metrics = groupedMetrics[holding.ticker] ?? {
+        grossValue: 0,
+        charges: 0,
+        totalAmount: 0,
+      }
+
+      summary.value += toNumber(metrics.totalAmount)
+      summary.invested += toNumber(metrics.grossValue)
+      summary.grossValue += toNumber(metrics.grossValue)
+      summary.charges += toNumber(metrics.charges)
       summary.totalQuantity += toNumber(holding.totalQuantity)
       summary.details.push({
         id: holding.ticker,
         title: `${holding.stockName} (${holding.ticker})`,
         subtitle: `Qty ${holding.totalQuantity}`,
-        value: toNumber(holding.totalInvested),
-        invested: toNumber(holding.totalInvested),
+        value: toNumber(metrics.totalAmount),
+        invested: toNumber(metrics.grossValue),
+        grossValue: toNumber(metrics.grossValue),
+        charges: toNumber(metrics.charges),
       })
       return summary
     },
     {
       value: 0,
       invested: 0,
+      grossValue: 0,
+      charges: 0,
       totalQuantity: 0,
       details: [],
     },
@@ -60,20 +95,29 @@ function getStockSummary() {
 }
 
 function getMutualFundCategorySummary() {
-  const summary = getMutualFundSummary()
+  const masters = getMutualFundMasters()
+  const details = masters.map((master) => {
+    const fundId = master.folioNumber || master.fundName || master.id
+    const summary = getMutualFundSummary(fundId)
+
+    return {
+      id: master.id,
+      title: master.fundName || 'Mutual Fund',
+      subtitle: master.folioNumber ? `Folio ${master.folioNumber}` : 'Stored entry',
+      value: summary.totalInvested,
+      invested: summary.totalInvested,
+      totalUnits: summary.totalUnits,
+    }
+  })
+
+  const totalInvested = details.reduce((sum, item) => sum + toNumber(item.value), 0)
+  const totalUnits = details.reduce((sum, item) => sum + toNumber(item.totalUnits), 0)
 
   return buildSummary('mf', {
-    value: summary.totalInvested,
-    invested: summary.totalInvested,
-    details: [
-      {
-        id: 'mf-summary',
-        title: 'Mutual Fund Book',
-        subtitle: `Units ${summary.totalUnits.toFixed(4)}`,
-        value: summary.totalInvested,
-        invested: summary.totalInvested,
-      },
-    ],
+    value: totalInvested,
+    invested: totalInvested,
+    totalUnits,
+    details,
   })
 }
 
@@ -179,24 +223,44 @@ function buildAccountLevelSummary(categoryId, keyField, titleField, subtitleFiel
 }
 
 function getGoldSilverCategorySummary() {
-  const details = getTransactionCategorySummary(goldSilverCategory, (txn) => {
-    const rawData = getTransactionRawData(txn)
-    const value = toNumber(txn.calculated?.totalValue)
+  const grouped = loadData().transactions
+    .filter((txn) => txn.category === goldSilverCategory)
+    .reduce((collection, txn) => {
+      const rawData = getTransactionRawData(txn)
+      const assetType = String(rawData.assetType ?? '').trim() || 'Stored entry'
+      const current = collection[assetType] ?? {
+        id: assetType.toLowerCase(),
+        title: assetType,
+        subtitle: 'Stored entry',
+        value: 0,
+        invested: 0,
+        totalGrams: 0,
+        charges: 0,
+      }
+      const invested = toNumber(txn.calculated?.totalValue)
+      const grams = toNumber(rawData.quantity)
+      const charges = toNumber(rawData.charges)
 
-    return {
-      id: txn.id,
-      title: rawData.assetType,
-      subtitle: rawData.date,
-      value,
-      invested: value,
-    }
-  })
+      current.value += invested
+      current.invested += invested
+      current.totalGrams += grams
+      current.charges += charges
+      current.subtitle = grams > 0 ? `${current.totalGrams.toFixed(4)} grams` : current.subtitle
+      collection[assetType] = current
 
-  const total = getGoldSilverSummary().totalValue
+      return collection
+    }, {})
+
+  const details = Object.values(grouped)
+  const totalInvested = details.reduce((sum, item) => sum + item.invested, 0)
+  const totalGrams = details.reduce((sum, item) => sum + toNumber(item.totalGrams), 0)
+  const charges = details.reduce((sum, item) => sum + toNumber(item.charges), 0)
 
   return buildSummary(goldSilverCategory, {
-    value: total,
-    invested: total,
+    value: totalInvested,
+    invested: totalInvested,
+    totalGrams,
+    charges,
     details,
   })
 }
@@ -312,16 +376,39 @@ function getBondsCategorySummary() {
 
 function getLicCategorySummary() {
   const items = loadData().masters.lic ?? []
+  const premiumByPolicy = loadData().transactions
+    .filter((txn) => txn.category === 'lic')
+    .reduce((collection, txn) => {
+      const rawData = getTransactionRawData(txn)
+      const key =
+        String(rawData.masterId ?? '').trim() ||
+        String(rawData.policyNumber ?? '').trim() ||
+        txn.id
+
+      collection[key] = (collection[key] ?? 0) + toNumber(rawData.amount ?? txn.amount)
+      return collection
+    }, {})
 
   return buildSummary('lic', {
     value: items.reduce((sum, item) => sum + toNumber(item.sumAssured), 0),
-    invested: items.reduce((sum, item) => sum + toNumber(item.calculated?.totalPremiumPaid), 0),
+    invested: items.reduce((sum, item) => {
+      const premiumPaid =
+        premiumByPolicy[String(item.id)] ??
+        premiumByPolicy[String(item.policyNumber ?? '').trim()] ??
+        0
+      return sum + toNumber(premiumPaid)
+    }, 0),
     details: items.map((item) => ({
       id: item.id,
       title: item.policyName,
       subtitle: item.policyNumber,
       value: toNumber(item.sumAssured),
-      invested: toNumber(item.calculated?.totalPremiumPaid),
+      invested:
+        toNumber(
+          premiumByPolicy[String(item.id)] ??
+          premiumByPolicy[String(item.policyNumber ?? '').trim()] ??
+          0,
+        ),
     })),
   })
 }
@@ -329,8 +416,7 @@ function getLicCategorySummary() {
 function getRealEstateCategorySummary() {
   const details = getTransactionCategorySummary(realEstateCategory, (txn) => {
     const rawData = getTransactionRawData(txn)
-    const value =
-      toNumber(rawData.purchaseValue) * (toNumber(rawData.ownershipPercent) / 100)
+    const value = toNumber(rawData.purchaseValue)
 
     return {
       id: txn.id,
@@ -351,20 +437,29 @@ function getRealEstateCategorySummary() {
 function getCryptoCategorySummary() {
   const details = getTransactionCategorySummary(cryptoCategory, (txn) => {
     const rawData = getTransactionRawData(txn)
-    const value = toNumber(rawData.quantity) * toNumber(rawData.price)
+    const grossValue = toNumber(rawData.quantity) * toNumber(rawData.price)
+    const charges = toNumber(rawData.charges)
+    const totalAmount =
+      normalizeTxnType(rawData.txnType) === 'SELL'
+        ? grossValue - charges
+        : grossValue + charges
 
     return {
       id: txn.id,
       title: `${rawData.coinName} (${rawData.symbol})`,
       subtitle: rawData.exchange,
-      value,
-      invested: value,
+      value: totalAmount,
+      invested: grossValue,
+      grossValue,
+      charges,
     }
   })
 
   return buildSummary(cryptoCategory, {
     value: details.reduce((sum, item) => sum + item.value, 0),
     invested: details.reduce((sum, item) => sum + item.invested, 0),
+    grossValue: details.reduce((sum, item) => sum + toNumber(item.grossValue), 0),
+    charges: details.reduce((sum, item) => sum + toNumber(item.charges), 0),
     details,
   })
 }
@@ -388,9 +483,25 @@ export function getCategorySummaries() {
   return categoryCatalog.map((category) => summaries[category.id] ?? buildSummary(category.id, {}))
 }
 
+function getPortfolioDisplayAmount(category) {
+  if (category.group === 'Fixed Income') {
+    return toNumber(category.value)
+  }
+
+  if (category.group === 'Insurance') {
+    return toNumber(category.invested)
+  }
+
+  if (category.group === 'Market' || category.group === 'Real Assets') {
+    return toNumber(category.invested)
+  }
+
+  return toNumber(category.value)
+}
+
 export function getPortfolioOverview() {
   const categories = getCategorySummaries()
-  const totalNetWorth = categories.reduce((sum, category) => sum + category.value, 0)
+  const totalNetWorth = categories.reduce((sum, category) => sum + getPortfolioDisplayAmount(category), 0)
   const groupedAllocation = categories.reduce((groups, category) => {
     const currentGroup = groups[category.group] ?? {
       group: category.group,
@@ -398,7 +509,7 @@ export function getPortfolioOverview() {
       categories: [],
     }
 
-    currentGroup.value += category.value
+    currentGroup.value += getPortfolioDisplayAmount(category)
     currentGroup.categories.push(category)
     groups[category.group] = currentGroup
 

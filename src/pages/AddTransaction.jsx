@@ -132,7 +132,11 @@ export default function AddTransaction() {
 
   const [editingMaster, setEditingMaster] = useState(null)
   const [saveMessage, setSaveMessage] = useState('')
+  const [saveMessageTone, setSaveMessageTone] = useState('success')
+  const [isSavingMaster, setIsSavingMaster] = useState(false)
+  const [isSavingSlave, setIsSavingSlave] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [slaveFormResetKey, setSlaveFormResetKey] = useState(0)
 
   const masterGroups = useMemo(() => listMasterRecords(), [refreshKey])
   const activeMasterRecords = useMemo(
@@ -180,8 +184,14 @@ export default function AddTransaction() {
     setSearchParams(nextParams)
   }
 
+  function setStatusMessage(message, tone = 'success') {
+    setSaveMessage(message)
+    setSaveMessageTone(tone)
+  }
+
   function resetMasterFlow() {
     setEditingMaster(null)
+    setStatusMessage('', 'success')
     updateFlowParams({
       tab: 'master',
       masterCategory: '',
@@ -189,6 +199,7 @@ export default function AddTransaction() {
   }
 
   function resetSlaveFlow() {
+    setStatusMessage('', 'success')
     updateFlowParams({
       tab: 'slave',
       slaveCategory: '',
@@ -198,7 +209,7 @@ export default function AddTransaction() {
 
   function handleMasterCategorySelect(category) {
     setEditingMaster(null)
-    setSaveMessage('')
+    setStatusMessage('', 'success')
     updateFlowParams({
       tab: 'master',
       masterCategory: category,
@@ -211,26 +222,35 @@ export default function AddTransaction() {
       masterCategory: category,
     })
     setEditingMaster(record)
-    setSaveMessage('')
+    setStatusMessage('', 'success')
   }
 
   function handleMasterSubmit(payload) {
-    const saved = saveMasterRecord(payload.category, payload.fields, editingMaster?.id ?? null)
+    setIsSavingMaster(true)
 
-    if (!saved) {
-      setSaveMessage('Master record could not be saved.')
-      return
+    try {
+      const saved = saveMasterRecord(payload.category, payload.fields, editingMaster?.id ?? null)
+
+      if (!saved) {
+        setStatusMessage('Account record could not be saved.', 'error')
+        return
+      }
+
+      setRefreshKey((value) => value + 1)
+      setStatusMessage(editingMaster ? 'Account record updated.' : 'Account record created.')
+      setEditingMaster(null)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unexpected storage error.'
+      setStatusMessage(`Account record could not be saved. ${message}`, 'error')
+    } finally {
+      setIsSavingMaster(false)
     }
-
-    setRefreshKey((value) => value + 1)
-    setSaveMessage(editingMaster ? 'Master record updated.' : 'Master record created.')
-    setEditingMaster(null)
   }
 
   function handleMasterStatusToggle(category, record) {
     toggleMasterRecordStatus(category, record)
     setRefreshKey((value) => value + 1)
-    setSaveMessage(record.status === 'ACTIVE' ? 'Master record closed.' : 'Master record reopened.')
+    setStatusMessage(record.status === 'ACTIVE' ? 'Account record closed.' : 'Account record reopened.')
   }
 
   function handleMasterDelete(category, record) {
@@ -243,7 +263,7 @@ export default function AddTransaction() {
     const deleted = deleteMasterRecord(category, record.id)
 
     if (!deleted) {
-      setSaveMessage('Account record could not be deleted.')
+      setStatusMessage('Account record could not be deleted.', 'error')
       return
     }
 
@@ -252,11 +272,11 @@ export default function AddTransaction() {
     }
 
     setRefreshKey((value) => value + 1)
-    setSaveMessage('Account record deleted.')
+    setStatusMessage('Account record deleted.')
   }
 
   function handleSlaveCategorySelect(category) {
-    setSaveMessage('')
+    setStatusMessage('', 'success')
     updateFlowParams({
       tab: 'slave',
       slaveCategory: category,
@@ -269,18 +289,32 @@ export default function AddTransaction() {
     const needsForcedTransaction =
       Boolean(selectedMaster?.id) && requiresMasterSelection(payload.category)
 
-    if (editingTransaction) {
-      editInvestmentTransaction(editingTransaction.id, payload.category, rawData, {
-        forceTransaction: needsForcedTransaction,
-      })
-    } else {
-      addInvestmentTransaction(payload.category, rawData, {
-        forceTransaction: needsForcedTransaction,
-      })
-    }
+    setIsSavingSlave(true)
 
-    setRefreshKey((value) => value + 1)
-    setSaveMessage(editingTransaction ? 'Slave transaction updated locally.' : 'Slave transaction saved locally.')
+    try {
+      if (editingTransaction) {
+        editInvestmentTransaction(editingTransaction.id, payload.category, rawData, {
+          forceTransaction: needsForcedTransaction,
+        })
+      } else {
+        addInvestmentTransaction(payload.category, rawData, {
+          forceTransaction: needsForcedTransaction,
+        })
+      }
+
+      setRefreshKey((value) => value + 1)
+      setStatusMessage(editingTransaction ? 'Entry updated locally.' : 'Entry saved locally.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unexpected storage error.'
+      setStatusMessage(`Entry could not be saved. ${message}`, 'error')
+    } finally {
+      setIsSavingSlave(false)
+    }
+  }
+
+  function handleAddAnotherEntry() {
+    setStatusMessage('', 'success')
+    setSlaveFormResetKey((value) => value + 1)
   }
 
   const showSlaveMasterSelection =
@@ -294,7 +328,11 @@ export default function AddTransaction() {
     (!requiresMasterSelection(slaveCategory) || Boolean(selectedMaster) || Boolean(editingTransaction))
 
   return (
-    <PageShell>
+    <PageShell
+      eyebrow={editingTransaction ? 'Update Entry' : 'Create Entry'}
+      title="Accounts And Entries"
+      description="Create account records, link them where required, and save investment entries with clearer status feedback."
+    >
       <div className="space-y-4">
         <div className="sticky top-0 z-10 space-y-3 bg-wn-bg/96 pb-2 pt-1 backdrop-blur-xl">
           <article className="glass-card p-5">
@@ -307,7 +345,7 @@ export default function AddTransaction() {
                 active={activeTab === 'master'}
                 label="Accounts"
                 onClick={() => {
-                  setSaveMessage('')
+                  setStatusMessage('', 'success')
                   updateFlowParams({
                     tab: 'master',
                     slaveCategory: '',
@@ -319,7 +357,7 @@ export default function AddTransaction() {
                 active={activeTab === 'slave'}
                 label="Add Entry"
                 onClick={() => {
-                  setSaveMessage('')
+                  setStatusMessage('', 'success')
                   updateFlowParams({
                     tab: 'slave',
                     masterCategory: '',
@@ -368,6 +406,7 @@ export default function AddTransaction() {
                   schema={activeMasterConfig.masterSchema}
                   initialValues={getMasterFormInitialValues(masterCategory, editingMaster)}
                   submitLabel={editingMaster ? 'Update Account' : 'Save Account'}
+                  isSubmitting={isSavingMaster}
                   showCalculatedSummary={false}
                   title="Account Details"
                   description="Maintain reusable account information for this category. Transaction totals are not shown here."
@@ -557,10 +596,12 @@ export default function AddTransaction() {
 
             {canRenderSlaveForm && slaveSchema.length > 0 ? (
                 <DynamicForm
+                  key={`${slaveCategory}-${selectedMasterId || 'direct'}-${editingTransaction?.id ?? 'new'}-${slaveFormResetKey}`}
                   category={slaveCategory}
                   schema={slaveSchema}
                   initialValues={slaveInitialValues}
                   submitLabel={editingTransaction ? 'Update Entry' : 'Save Entry'}
+                  isSubmitting={isSavingSlave}
                   title="Transaction Details"
                   description="Fields are generated from the selected category configuration."
                   onSubmit={handleSlaveSubmit}
@@ -581,7 +622,14 @@ export default function AddTransaction() {
         {saveMessage ? (
           <article className="glass-card p-5">
             <p className="section-title">Status</p>
-            <p className="mt-3 rounded-[20px] border border-emerald-500/35 bg-emerald-400/16 px-4 py-3 text-sm font-medium text-emerald-900">
+            <p
+              className={[
+                'mt-3 rounded-[20px] border px-4 py-3 text-sm font-medium',
+                saveMessageTone === 'error'
+                  ? 'border-rose-500/35 bg-rose-400/14 text-rose-200'
+                  : 'border-emerald-500/35 bg-emerald-400/16 text-emerald-900',
+              ].join(' ')}
+            >
               {saveMessage}
             </p>
 
@@ -592,6 +640,14 @@ export default function AddTransaction() {
                 className="mt-4 secondary-button"
               >
                 Back to Transactions
+              </button>
+            ) : activeTab === 'slave' && saveMessageTone !== 'error' ? (
+              <button
+                type="button"
+                onClick={handleAddAnotherEntry}
+                className="mt-4 secondary-button"
+              >
+                Add Another Entry
               </button>
             ) : null}
           </article>

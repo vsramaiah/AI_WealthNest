@@ -150,7 +150,7 @@ export default function Settings() {
             icon={Download}
             iconTone="from-sky-500 to-blue-400"
             title="Export JSON Backup"
-            subtitle={`Filename format: ${buildBackupFilename()}`}
+            subtitle="Download your full local WealthNest data as a JSON backup file."
           >
             <button type="button" onClick={handleBackupDownload} className="secondary-button px-3 py-2">
               Export

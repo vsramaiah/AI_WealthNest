@@ -1,7 +1,7 @@
-import { List, PencilLine, Plus, Settings2 } from 'lucide-react'
+import { List, Plus, Settings2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { loadAppSettings, saveAppSettings, subscribeToAppSettings } from '../utils/appSettings'
+import { loadAppSettings, subscribeToAppSettings } from '../utils/appSettings'
 import BrandMark from './BrandMark'
 
 const HEADER_META = {
@@ -67,25 +67,19 @@ export default function Header() {
 
   useEffect(() => subscribeToAppSettings(setSettings), [])
 
-  function handleInvestorNameEdit() {
-    const currentName = settings.investorName ?? 'Investor'
-    const nextName = window.prompt('Enter the display name for the dashboard greeting.', currentName)
-
-    if (nextName === null) {
-      return
-    }
-
-    const normalizedName = nextName.trim().replace(/\s+/g, ' ').slice(0, 24) || 'Investor'
-    saveAppSettings({
-      investorName: normalizedName,
-    })
-  }
-
   return (
     <header className="sticky top-0 z-20 border-b border-white/5 bg-wn-bg/88 px-4 pb-4 pt-6 backdrop-blur-xl">
       <div className="space-y-4">
         {showExpandedBrand ? (
-          <BrandMark minimal />
+          <div className="flex items-center justify-between gap-3">
+            <BrandMark minimal />
+            <ActionButton
+              label="Open settings"
+              onClick={() => navigate('/settings')}
+            >
+              <Settings2 size={18} strokeWidth={2.1} />
+            </ActionButton>
+          </div>
         ) : (
           <div className="flex items-center justify-between gap-3">
             <BrandMark compact subtitle="" />
@@ -93,47 +87,49 @@ export default function Header() {
           </div>
         )}
 
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-[1.9rem] font-semibold tracking-tight text-wn-text">
-                {meta.title}
-              </h1>
-              {showExpandedBrand ? (
-                <button
-                  type="button"
-                  onClick={handleInvestorNameEdit}
-                  aria-label="Edit dashboard name"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/8 bg-white/[0.04] text-wn-text hover:bg-white/[0.06]"
-                >
-                  <PencilLine size={15} strokeWidth={2.1} />
-                </button>
-              ) : null}
+        {showExpandedBrand ? null : (
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="truncate text-[1.9rem] font-semibold tracking-tight text-wn-text">
+                  {meta.title}
+                </h1>
+                {showExpandedBrand ? (
+                  <button
+                    type="button"
+                    onClick={handleInvestorNameEdit}
+                    aria-label="Edit dashboard name"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/8 bg-white/[0.04] text-wn-text hover:bg-white/[0.06]"
+                  >
+                    <PencilLine size={15} strokeWidth={2.1} />
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-1 text-sm text-wn-muted">{meta.subtitle}</p>
             </div>
-            <p className="mt-1 text-sm text-wn-muted">{meta.subtitle}</p>
-          </div>
 
-          <div className="flex items-center gap-2">
-            {pathname !== '/settings' ? (
+            <div className="flex items-center gap-2">
+              {pathname !== '/settings' ? (
+                <ActionButton
+                  label="Open transactions"
+                  onClick={() => navigate('/transactions')}
+                >
+                  <List size={18} strokeWidth={2.1} />
+                </ActionButton>
+              ) : null}
               <ActionButton
-                label="Open transactions"
-                onClick={() => navigate('/transactions')}
+                label={pathname === '/transactions' ? 'Open add transaction' : 'Open settings'}
+                onClick={() => navigate(pathname === '/transactions' ? '/add' : '/settings')}
               >
-                <List size={18} strokeWidth={2.1} />
+                {pathname === '/transactions' ? (
+                  <Plus size={18} strokeWidth={2.1} />
+                ) : (
+                  <Settings2 size={18} strokeWidth={2.1} />
+                )}
               </ActionButton>
-            ) : null}
-            <ActionButton
-              label={pathname === '/transactions' ? 'Open add transaction' : 'Open settings'}
-              onClick={() => navigate(pathname === '/transactions' ? '/add' : '/settings')}
-            >
-              {pathname === '/transactions' ? (
-                <Plus size={18} strokeWidth={2.1} />
-              ) : (
-                <Settings2 size={18} strokeWidth={2.1} />
-              )}
-            </ActionButton>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </header>
   )

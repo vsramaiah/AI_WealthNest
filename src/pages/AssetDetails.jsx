@@ -20,6 +20,30 @@ function isFixedIncomeCategory(category) {
   return category.group === 'Fixed Income'
 }
 
+function isInsuranceCategory(category) {
+  return category.group === 'Insurance'
+}
+
+function isStockCategory(category) {
+  return category.id === 'stocks'
+}
+
+function isMutualFundCategory(category) {
+  return category.id === 'mf'
+}
+
+function isCryptoCategory(category) {
+  return category.id === 'crypto'
+}
+
+function isGoldSilverCategory(category) {
+  return category.id === 'goldSilver'
+}
+
+function isRealEstateCategory(category) {
+  return category.id === 'realEstate'
+}
+
 export default function AssetDetails() {
   const { categoryId } = useParams()
   const category = getCategoryDetails(categoryId)
@@ -57,31 +81,71 @@ export default function AssetDetails() {
             <ArrowUpRight className="text-wn-muted" size={18} />
           </div>
 
-          <div className="mt-5 grid grid-cols-3 gap-3">
+          <div
+            className={`mt-5 grid gap-3 ${
+              isRealEstateCategory(category)
+                ? 'grid-cols-1'
+                : isInsuranceCategory(category) || isMutualFundCategory(category)
+                  ? 'grid-cols-2'
+                  : 'grid-cols-3'
+            }`}
+          >
             <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
               <p className="metric-label">
-                {isFixedIncomeCategory(category) ? 'Total' : 'Value'}
+                {isStockCategory(category)
+                  || isCryptoCategory(category)
+                  ? 'Invested'
+                  : isGoldSilverCategory(category)
+                    ? 'Invested'
+                  : isRealEstateCategory(category)
+                    ? 'Invested'
+                  : isMutualFundCategory(category)
+                    ? 'Invested'
+                  : isInsuranceCategory(category)
+                    ? 'Sum Assured'
+                    : isFixedIncomeCategory(category)
+                      ? 'Total'
+                      : 'Value'}
               </p>
               <p className="mt-2 text-sm font-semibold text-wn-text">
                 {formatCurrency(category.value)}
               </p>
             </div>
-            <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-              <p className="metric-label">
-                {isFixedIncomeCategory(category) ? 'Deposit' : 'Invested'}
-              </p>
-              <p className="mt-2 text-sm font-semibold text-wn-text">
-                {formatCurrency(category.invested)}
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-              <p className="metric-label">
-                {isFixedIncomeCategory(category) ? 'Interest' : 'P/L'}
-              </p>
-              <p className={`mt-2 text-sm font-semibold ${profitTone(category.profitLoss)}`}>
-                {formatCurrency(category.profitLoss)}
-              </p>
-            </div>
+            {isRealEstateCategory(category) ? null : (
+              <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
+                <p className="metric-label">
+                  {isStockCategory(category)
+                    || isCryptoCategory(category)
+                    ? 'Gross Value'
+                    : isGoldSilverCategory(category)
+                      ? 'Total Grams'
+                    : isMutualFundCategory(category)
+                      ? 'Total Units'
+                    : isInsuranceCategory(category)
+                      ? 'Premium Paid'
+                      : isFixedIncomeCategory(category)
+                        ? 'Deposit'
+                        : 'Invested'}
+                </p>
+                <p className="mt-2 text-sm font-semibold text-wn-text">
+                  {isMutualFundCategory(category)
+                    ? Number(category.totalUnits ?? 0).toFixed(4)
+                    : isGoldSilverCategory(category)
+                      ? `${Number(category.totalGrams ?? 0).toFixed(4)} g`
+                      : formatCurrency(isStockCategory(category) || isCryptoCategory(category) ? category.grossValue : category.invested)}
+                </p>
+              </div>
+            )}
+            {isInsuranceCategory(category) || isMutualFundCategory(category) || isRealEstateCategory(category) ? null : (
+              <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
+                <p className="metric-label">
+                  {isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? 'Charges' : isFixedIncomeCategory(category) ? 'Interest' : 'P/L'}
+                </p>
+                <p className={`mt-2 text-sm font-semibold ${isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? 'text-wn-text' : profitTone(category.profitLoss)}`}>
+                  {formatCurrency(isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? category.charges : category.profitLoss)}
+                </p>
+              </div>
+            )}
           </div>
         </article>
 
@@ -96,24 +160,74 @@ export default function AssetDetails() {
                 <ArrowUpRight className="text-wn-muted" size={18} />
               </div>
 
-              <div className={`mt-4 grid gap-3 ${isFixedIncomeCategory(category) ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              <div
+                className={`mt-4 grid gap-3 ${
+                  isRealEstateCategory(category)
+                    ? 'grid-cols-1'
+                    : 
+                  isInsuranceCategory(category)
+                    || isMutualFundCategory(category)
+                    ? 'grid-cols-2'
+                    : isFixedIncomeCategory(category)
+                      ? 'grid-cols-3'
+                      : 'grid-cols-2'
+                }`}
+              >
                 <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
                   <p className="metric-label">
-                    {isFixedIncomeCategory(category) ? 'Total' : 'Value'}
+                    {isStockCategory(category)
+                      || isCryptoCategory(category)
+                      ? 'Invested'
+                      : isGoldSilverCategory(category)
+                        ? 'Invested'
+                      : isRealEstateCategory(category)
+                        ? 'Invested'
+                      : isMutualFundCategory(category)
+                        ? 'Invested'
+                      : isInsuranceCategory(category)
+                        ? 'Sum Assured'
+                        : isFixedIncomeCategory(category)
+                          ? 'Total'
+                          : 'Value'}
                   </p>
                   <p className="mt-2 text-sm font-semibold text-wn-text">
                     {formatCurrency(item.value ?? 0)}
                   </p>
                 </div>
-                <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                  <p className="metric-label">
-                    {isFixedIncomeCategory(category) ? 'Deposit' : 'Invested'}
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-wn-text">
-                    {formatCurrency(item.invested ?? 0)}
-                  </p>
-                </div>
-                {isFixedIncomeCategory(category) ? (
+                {isRealEstateCategory(category) ? null : (
+                  <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
+                    <p className="metric-label">
+                      {isStockCategory(category)
+                        || isCryptoCategory(category)
+                        ? 'Gross Value'
+                        : isGoldSilverCategory(category)
+                          ? 'Total Grams'
+                        : isMutualFundCategory(category)
+                          ? 'Total Units'
+                        : isInsuranceCategory(category)
+                          ? 'Premium Paid'
+                          : isFixedIncomeCategory(category)
+                            ? 'Deposit'
+                            : 'Invested'}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-wn-text">
+                      {isMutualFundCategory(category)
+                        ? Number(item.totalUnits ?? 0).toFixed(4)
+                        : isGoldSilverCategory(category)
+                          ? `${Number(item.totalGrams ?? 0).toFixed(4)} g`
+                          : formatCurrency(isStockCategory(category) || isCryptoCategory(category) ? item.grossValue ?? 0 : item.invested ?? 0)}
+                    </p>
+                  </div>
+                )}
+                {isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? (
+                  <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
+                    <p className="metric-label">Charges</p>
+                    <p className="mt-2 text-sm font-semibold text-wn-text">
+                      {formatCurrency(item.charges ?? 0)}
+                    </p>
+                  </div>
+                ) : null}
+                {isFixedIncomeCategory(category) && !isInsuranceCategory(category) ? (
                   <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
                     <p className="metric-label">Interest</p>
                     <p className={`mt-2 text-sm font-semibold ${profitTone((item.value ?? 0) - (item.invested ?? 0))}`}>
