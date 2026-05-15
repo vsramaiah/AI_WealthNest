@@ -13,6 +13,14 @@ const GROUP_ICONS = {
   default: Wallet,
 }
 
+const GROUP_ICON_GRADIENTS = {
+  Market: 'from-emerald-500 to-teal-400',
+  'Fixed Income': 'from-amber-500 to-yellow-400',
+  Insurance: 'from-violet-500 to-fuchsia-400',
+  'Real Assets': 'from-sky-500 to-cyan-400',
+  default: 'from-slate-500 to-slate-400',
+}
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -100,12 +108,14 @@ export default function Portfolio() {
         <div className="space-y-5">
           {visibleGroups.map((group) => {
             const GroupIcon = GROUP_ICONS[group.group] ?? GROUP_ICONS.default
+            const groupIconGradient =
+              GROUP_ICON_GRADIENTS[group.group] ?? GROUP_ICON_GRADIENTS.default
 
             return (
               <section key={group.group} className="space-y-3">
                 <div className="flex items-center justify-between gap-3 px-1">
                   <div className="flex items-center gap-3">
-                    <div className="icon-badge bg-gradient-to-br from-sky-500 to-cyan-400">
+                    <div className={`icon-badge bg-gradient-to-br ${groupIconGradient}`}>
                       <GroupIcon size={18} strokeWidth={2.1} />
                     </div>
                     <div>

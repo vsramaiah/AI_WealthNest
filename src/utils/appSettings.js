@@ -10,7 +10,7 @@ const defaultSettings = {
   lastBackupAt: null,
   autoBackupAt: null,
   appLockEnabled: false,
-  appLockPin: '1234',
+  appLockPinHash: null,
   remindersEnabled: true,
   lastReminderCheckAt: null,
 }
@@ -23,6 +23,24 @@ function normalizePin(pin) {
 
 function cloneDefaultSettings() {
   return JSON.parse(JSON.stringify(defaultSettings))
+}
+
+async function hashPin(pin) {
+  const normalizedPin = normalizePin(pin)
+  const encodedPin = new TextEncoder().encode(normalizedPin)
+  const digest = await window.crypto.subtle.digest('SHA-256', encodedPin)
+
+  return Array.from(new Uint8Array(digest))
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+function dispatchSettingsChange(detail) {
+  window.dispatchEvent(
+    new CustomEvent(SETTINGS_EVENT, {
+      detail,
+    }),
+  )
 }
 
 export function loadAppSettings() {
@@ -47,17 +65,9 @@ export function saveAppSettings(nextSettings) {
     ...nextSettings,
   }
 
-  if (Object.prototype.hasOwnProperty.call(nextSettings ?? {}, 'appLockPin')) {
-    mergedSettings.appLockPin = normalizePin(nextSettings.appLockPin) || '1234'
-  }
-
   window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings))
   applyThemeMode(mergedSettings.themeMode)
-  window.dispatchEvent(
-    new CustomEvent(SETTINGS_EVENT, {
-      detail: mergedSettings,
-    }),
-  )
+  dispatchSettingsChange(mergedSettings)
 
   return mergedSettings
 }
@@ -101,8 +111,49 @@ export function setAppUnlocked(unlocked) {
   )
 }
 
-export function verifyAppLockPin(pin) {
-  return normalizePin(pin) === normalizePin(loadAppSettings().appLockPin ?? '1234')
+export async function saveAppLockPin(pin) {
+  const normalizedPin = normalizePin(pin)
+
+  if (normalizedPin.length !== 4) {
+    throw new Error('App lock PIN must be exactly 4 digits.')
+  }
+
+  const nextSettings = {
+    ...loadAppSettings(),
+    appLockPinHash: await hashPin(normalizedPin),
+  }
+
+  delete nextSettings.appLockPin
+
+  window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(nextSettings))
+  applyThemeMode(nextSettings.themeMode)
+  dispatchSettingsChange(nextSettings)
+
+  return nextSettings
+}
+
+export async function verifyAppLockPin(pin) {
+  const normalizedPin = normalizePin(pin)
+  const settings = loadAppSettings()
+  const storedHash = settings.appLockPinHash ?? null
+
+  if (storedHash) {
+    return (await hashPin(normalizedPin)) === storedHash
+  }
+
+  const legacyPin = normalizePin(settings.appLockPin ?? '')
+
+  if (legacyPin.length !== 4) {
+    return false
+  }
+
+  const isValid = normalizedPin === legacyPin
+
+  if (isValid) {
+    await saveAppLockPin(legacyPin)
+  }
+
+  return isValid
 }
 
 export function subscribeToAppLock(listener) {
@@ -122,11 +173,24 @@ export function resetAppSettings() {
   window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(resetSettings))
   applyThemeMode(resetSettings.themeMode)
   setAppUnlocked(false)
-  window.dispatchEvent(
-    new CustomEvent(SETTINGS_EVENT, {
-      detail: resetSettings,
-    }),
-  )
+  dispatchSettingsChange(resetSettings)
 
   return resetSettings
+}
+
+export function resetAppLock() {
+  const nextSettings = {
+    ...loadAppSettings(),
+    appLockEnabled: false,
+    appLockPinHash: null,
+  }
+
+  delete nextSettings.appLockPin
+
+  window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(nextSettings))
+  applyThemeMode(nextSettings.themeMode)
+  setAppUnlocked(false)
+  dispatchSettingsChange(nextSettings)
+
+  return nextSettings
 }

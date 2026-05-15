@@ -8,6 +8,12 @@ function toNumber(value) {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
+function todayLocalDateValue() {
+  const today = new Date()
+  const timezoneOffsetMs = today.getTimezoneOffset() * 60 * 1000
+  return new Date(today.getTime() - timezoneOffsetMs).toISOString().slice(0, 10)
+}
+
 function monthsBetween(startDate, endDate) {
   if (!startDate || !endDate) {
     return 0
@@ -38,7 +44,7 @@ function countElapsedPayments(startDate, frequency) {
     return 0
   }
 
-  const monthsElapsed = monthsBetween(startDate, today.toISOString().slice(0, 10))
+  const monthsElapsed = monthsBetween(startDate, todayLocalDateValue())
 
   if (frequency === 'Yearly') {
     return Math.floor(monthsElapsed / 12) + 1
@@ -94,6 +100,18 @@ export const goldSilverSchema = [
     options: [
       { label: 'Gold', value: 'Gold' },
       { label: 'Silver', value: 'Silver' },
+    ],
+  },
+  {
+    name: 'holdingType',
+    label: 'Holding Type',
+    type: 'select',
+    placeholder: 'Choose holding type',
+    required: true,
+    options: [
+      { label: 'Physical', value: 'Physical' },
+      { label: 'ETF', value: 'ETF' },
+      { label: 'Digital', value: 'Digital' },
     ],
   },
   {
@@ -193,6 +211,31 @@ export const fdMasterSchema = [
     required: true,
     min: 1,
     step: '1',
+  },
+  {
+    name: 'payoutType',
+    label: 'Payout Type',
+    type: 'select',
+    placeholder: 'Choose payout type',
+    required: true,
+    options: [
+      { label: 'Cumulative', value: 'Cumulative' },
+      { label: 'Non-Cumulative', value: 'Non-Cumulative' },
+    ],
+  },
+  {
+    name: 'interestPayoutFrequency',
+    label: 'Interest Payout Frequency',
+    type: 'select',
+    placeholder: 'Choose payout frequency',
+    required: true,
+    options: [
+      { label: 'Monthly', value: 'Monthly' },
+      { label: 'Quarterly', value: 'Quarterly' },
+      { label: 'Half-Yearly', value: 'Half-Yearly' },
+      { label: 'Yearly', value: 'Yearly' },
+      { label: 'At Maturity', value: 'At Maturity' },
+    ],
   },
   {
     name: 'status',
@@ -366,6 +409,13 @@ export const epfSchema = [
     required: true,
   },
   {
+    name: 'memberId',
+    label: 'Member ID',
+    type: 'text',
+    placeholder: 'Enter member ID',
+    required: true,
+  },
+  {
     name: 'txnType',
     label: 'Transaction Type',
     type: 'select',
@@ -381,6 +431,18 @@ export const epfSchema = [
     label: 'Date',
     type: 'date',
     required: true,
+  },
+  {
+    name: 'joiningDate',
+    label: 'Joining Date',
+    type: 'date',
+    required: false,
+  },
+  {
+    name: 'exitDate',
+    label: 'Exit Date',
+    type: 'date',
+    required: false,
   },
   {
     name: 'employeeContribution',
@@ -492,9 +554,15 @@ export const bondsSchema = [
   },
   {
     name: 'issuer',
-    label: 'Issuer',
+    label: 'Issuer Name',
     type: 'text',
-    placeholder: 'Enter issuer',
+    placeholder: 'Enter issuer name',
+    required: true,
+  },
+  {
+    name: 'couponPaymentDate',
+    label: 'Coupon Payment Date',
+    type: 'date',
     required: true,
   },
   {
@@ -516,10 +584,10 @@ export const bondsSchema = [
     step: '1',
   },
   {
-    name: 'interestRate',
-    label: 'Interest Rate (%)',
+    name: 'couponRate',
+    label: 'Coupon Rate (%)',
     type: 'number',
-    placeholder: 'Enter interest rate',
+    placeholder: 'Enter coupon rate',
     required: true,
     min: 0,
     step: '0.01',
@@ -713,6 +781,13 @@ export const cryptoSchema = [
     ],
   },
   {
+    name: 'network',
+    label: 'Network',
+    type: 'text',
+    placeholder: 'Enter network',
+    required: true,
+  },
+  {
     name: 'quantity',
     label: 'Quantity',
     type: 'number',
@@ -731,10 +806,20 @@ export const cryptoSchema = [
     step: '0.01',
   },
   {
+    name: 'charges',
+    label: 'Transaction Fee',
+    type: 'number',
+    placeholder: 'Enter transaction fee',
+    required: true,
+    min: 0,
+    step: '0.01',
+    defaultValue: 0,
+  },
+  {
     name: 'exchange',
-    label: 'Exchange',
+    label: 'Wallet / Exchange Name',
     type: 'text',
-    placeholder: 'Enter exchange name',
+    placeholder: 'Enter wallet or exchange name',
     required: true,
   },
   {
@@ -772,11 +857,13 @@ export const otherInvestmentOptions = [
   { label: 'Crypto', value: cryptoCategory },
 ]
 
-export const otherInvestmentMasterCategories = ['rd', 'lic']
+export const otherInvestmentMasterCategories = ['rd', 'lic', ppfCategory, epfCategory, npsCategory, bondsCategory, cryptoCategory]
 
 export function calculateGoldSilver(fields) {
+  const sign = String(fields.txnType ?? '').toUpperCase() === 'SELL' ? -1 : 1
+
   return {
-    totalValue: toNumber(fields.quantity) * toNumber(fields.pricePerGram),
+    totalValue: toNumber(fields.quantity) * toNumber(fields.pricePerGram) * sign,
   }
 }
 

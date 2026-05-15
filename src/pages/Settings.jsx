@@ -15,6 +15,7 @@ import {
   isAppUnlocked,
   loadAppSettings,
   resetAppSettings,
+  saveAppLockPin,
   saveAppSettings,
   setAppUnlocked,
   simulateAutoBackup,
@@ -26,7 +27,7 @@ import {
   downloadTransactionsCsv,
   restoreJsonBackup,
 } from '../utils/dataPortability'
-import { defaultData, saveData } from '../utils/storage'
+import { getDefaultData, saveData } from '../utils/storage'
 
 function SettingRow({ icon: Icon, iconTone, title, subtitle, children }) {
   return (
@@ -66,18 +67,21 @@ function formatBackupTime(value) {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  }) + date.toLocaleTimeString('en-IN', {
+  }) + ' at ' + date.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
     hour12: false,
-  }).replace(/^/, ' at ')
+  })
 }
 
 export default function Settings() {
   const [settings, setSettings] = useState(() => loadAppSettings())
   const [statusMessage, setStatusMessage] = useState('')
-  const [pinDraft, setPinDraft] = useState(() => loadAppSettings().appLockPin ?? '1234')
+  const [pinDraft, setPinDraft] = useState('')
+  const [confirmPinDraft, setConfirmPinDraft] = useState('')
+  const [isSavingPin, setIsSavingPin] = useState(false)
+  const [showClearDataConfirm, setShowClearDataConfirm] = useState(false)
   const fileInputRef = useRef(null)
 
   useEffect(() => subscribeToAppSettings(setSettings), [])
@@ -114,17 +118,11 @@ export default function Settings() {
   }
 
   function handleClearAllData() {
-    const confirmed = window.confirm(
-      'Clear all WealthNest data from this device? This will remove transactions, masters, and local settings.',
-    )
-
-    if (!confirmed) {
-      return
-    }
-
-    saveData(defaultData)
+    saveData(getDefaultData())
     resetAppSettings()
-    setPinDraft('1234')
+    setPinDraft('')
+    setConfirmPinDraft('')
+    setShowClearDataConfirm(false)
     setStatusMessage('All WealthNest data was cleared from this device.')
   }
 
@@ -258,12 +256,33 @@ export default function Settings() {
               }
               className="form-input"
             />
+            <span className="mt-2 block text-sm text-wn-muted">
+              Your PIN is stored as a one-way hash on this device. Enter a new 4-digit PIN to replace it.
+            </span>
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-wn-text">Confirm PIN</span>
+            <input
+              type="password"
+              value={confirmPinDraft}
+              inputMode="numeric"
+              maxLength={4}
+              onChange={(event) =>
+                setConfirmPinDraft(event.target.value.replace(/\D/g, '').slice(0, 4))
+              }
+              className="form-input"
+            />
           </label>
 
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
+                if (isSavingPin) {
+                  return
+                }
+
                 const normalizedPin = pinDraft.replace(/\D/g, '').slice(0, 4)
 
                 if (normalizedPin.length !== 4) {
@@ -271,15 +290,29 @@ export default function Settings() {
                   return
                 }
 
-                saveAppSettings({
-                  appLockPin: normalizedPin,
-                })
-                setPinDraft(normalizedPin)
-                setStatusMessage('App lock PIN updated.')
+                if (normalizedPin !== confirmPinDraft.replace(/\D/g, '').slice(0, 4)) {
+                  setStatusMessage('PIN confirmation does not match.')
+                  return
+                }
+
+                setIsSavingPin(true)
+
+                try {
+                  await saveAppLockPin(normalizedPin)
+                  setPinDraft('')
+                  setConfirmPinDraft('')
+                  setStatusMessage('App lock PIN updated.')
+                } catch (error) {
+                  const message =
+                    error instanceof Error ? error.message : 'App lock PIN could not be updated.'
+                  setStatusMessage(message)
+                } finally {
+                  setIsSavingPin(false)
+                }
               }}
               className="primary-button"
             >
-              Save PIN
+              {isSavingPin ? 'Saving...' : 'Save PIN'}
             </button>
             <button
               type="button"
@@ -375,7 +408,7 @@ export default function Settings() {
           >
             <button
               type="button"
-              onClick={handleClearAllData}
+              onClick={() => setShowClearDataConfirm(true)}
               className="secondary-button px-3 py-2"
             >
               Clear All Data
@@ -397,6 +430,38 @@ export default function Settings() {
             <p className="section-title">Status</p>
             <p className="mt-2 text-sm text-wn-muted">{statusMessage}</p>
           </article>
+        ) : null}
+
+        {showClearDataConfirm ? (
+          <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 px-4 pb-6 pt-10 backdrop-blur sm:items-center">
+            <article
+              role="dialog"
+              aria-modal="true"
+              aria-label="Clear all data confirmation"
+              className="glass-card w-full max-w-md p-5"
+            >
+              <p className="section-title">Clear All Data?</p>
+              <p className="mt-2 text-sm text-wn-muted">
+                This will remove all transactions, account records, and local settings from this device.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowClearDataConfirm(false)}
+                  className="secondary-button"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearAllData}
+                  className="inline-flex items-center justify-center rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-300"
+                >
+                  Clear Data
+                </button>
+              </div>
+            </article>
+          </div>
         ) : null}
       </div>
     </PageShell>

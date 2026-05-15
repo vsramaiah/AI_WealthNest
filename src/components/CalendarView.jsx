@@ -55,27 +55,6 @@ export default function CalendarView() {
 
   return (
     <section className="space-y-4">
-      {model.reminderBanners.length > 0 ? (
-        <div className="space-y-3">
-          {model.reminderBanners.slice(0, 3).map((reminder) => (
-            <article
-              key={reminder.id}
-              className="glass-card border border-amber-300/20 bg-amber-300/10 p-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-wn-text">{reminder.reminderStatus}</p>
-                <span className="pill-chip border-amber-300/20 text-amber-100">
-                  {reminder.label}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-wn-muted">
-                {reminder.title} on {formatDate(reminder.date)}
-              </p>
-            </article>
-          ))}
-        </div>
-      ) : null}
-
       <article className="glass-card p-5">
         <div className="flex items-center justify-between gap-3">
           <button
@@ -206,6 +185,9 @@ export default function CalendarView() {
                   </div>
 
                   <p className="mt-3 text-sm font-semibold text-wn-text">{event.title}</p>
+                  {event.subtitle ? (
+                    <p className="mt-1 text-xs text-wn-muted">{event.subtitle}</p>
+                  ) : null}
                   <p className="mt-2 text-sm text-wn-muted">Type: {event.rawType}</p>
                   <p className="mt-1 text-sm text-wn-muted">Amount: {formatCurrency(event.amount)}</p>
 

@@ -54,14 +54,19 @@ export default function BrandMark({
 }) {
   return (
     <div className={`flex items-center ${compact ? 'gap-3' : 'gap-4'}`}>
-      <div className="rounded-[20px] border border-white/8 bg-white/[0.03] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.24)]">
-        <WealthNestGlyph className={compact ? 'h-10 w-10' : 'h-11 w-11'} />
+      <div className={`${minimal ? 'rounded-[22px] bg-white p-2 shadow-[0_12px_28px_rgba(148,163,184,0.18)]' : 'rounded-[20px] border border-white/8 bg-white/[0.03] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.24)]'}`}>
+        <WealthNestGlyph className={minimal ? 'h-12 w-12' : compact ? 'h-10 w-10' : 'h-11 w-11'} />
       </div>
 
       <div className="min-w-0">
-        <p className={`font-semibold uppercase text-emerald-300/88 ${minimal ? 'text-xs tracking-[0.28em]' : 'text-[10px] tracking-[0.34em]'}`}>
+        <p className={`font-semibold uppercase ${minimal ? 'text-[0.96rem] tracking-[0.42em] text-emerald-300' : 'text-[10px] tracking-[0.34em] text-emerald-300/88'}`}>
           WEALTHNEST
         </p>
+        {minimal ? (
+          <p className="mt-1 text-xs font-medium tracking-[0.08em] text-wn-muted">
+            Track. Invest. Grow.
+          </p>
+        ) : null}
         {!minimal ? (
           <p className={`truncate font-semibold tracking-tight text-wn-text ${compact ? 'text-base' : 'text-lg'}`}>
             Structured wealth management for long-term growth.

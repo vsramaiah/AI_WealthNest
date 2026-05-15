@@ -1,11 +1,17 @@
 import { CalendarDays, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
+import { hasMasterConfig } from '../utils/masterData'
 import { transactionCategoryOptions } from '../utils/transactionSchemas'
 import { listInvestmentTransactions } from '../utils/transactionEngine'
 
-const MASTER_ONLY_CATEGORIES = new Set(['rd', 'lic'])
+// Keep the empty state aligned with categories that depend on saved account records.
+const MASTER_ONLY_CATEGORIES = new Set(
+  transactionCategoryOptions
+    .map((option) => option.value)
+    .filter((category) => hasMasterConfig(category)),
+)
 
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-IN', {
@@ -24,7 +30,9 @@ function formatTxnMeta(txn) {
   }
 
   if (txn.category === 'mf') {
-    return raw.units ? `${raw.units} Units` : formatCurrency(raw.amount ?? 0)
+    const folioText = raw.folioNumber ? `Folio ${raw.folioNumber}` : raw.fundId ? `ID ${raw.fundId}` : ''
+    const unitsText = raw.units ? `${raw.units} Units` : formatCurrency(raw.amount ?? 0)
+    return folioText ? `${folioText} · ${unitsText}` : unitsText
   }
 
   if (txn.category === 'ppf') {
@@ -38,10 +46,27 @@ function formatTxnMeta(txn) {
   }
 
   if (txn.category === 'rd' || txn.category === 'epf') {
-    return 'Interest Credited'
+    return raw.txnType === 'INTEREST'
+      ? 'Interest Credited'
+      : formatCurrency(
+          raw.amount ??
+            raw.depositAmount ??
+            ((Number(raw.employeeContribution) || 0) + (Number(raw.employerContribution) || 0)) ??
+            txn.amount,
+        )
   }
 
   return raw.notes || formatCurrency(txn.amount)
+}
+
+function formatTxnTitle(txn) {
+  const raw = txn.rawData ?? {}
+
+  if (txn.category === 'mf') {
+    return raw.fundName || txn.title
+  }
+
+  return txn.title
 }
 
 function formatDay(value) {
@@ -104,16 +129,25 @@ function formatDateRange(value) {
   })
 }
 
+function parseComparableDate(value) {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 function getCategoryLabel(category) {
   return transactionCategoryOptions.find((option) => option.value === category)?.label ?? category
 }
 
 function getMasterOnlyMessage(category) {
-  if (category && category !== 'all' && MASTER_ONLY_CATEGORIES.has(category)) {
-    return `${getCategoryLabel(category)} records are saved as master entries, so they do not appear in Transactions. Use Portfolio, reminders, and calendar views to review them.`
+  if (category && category !== 'all' && hasMasterConfig(category)) {
+    return `${getCategoryLabel(category)} uses saved account records for due-date tracking and reminders.`
   }
 
-  return 'RD and LIC are saved as master records, so they do not appear in Transactions. Use Portfolio, reminders, and calendar views to review them.'
+  return 'Saved account records also support due-date tracking and reminders across the app.'
 }
 
 function toneForType(type) {
@@ -177,7 +211,7 @@ function TransactionRow({ txn }) {
 
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-wn-text">
-              {txn.type} - {txn.title}
+              {txn.type} - {formatTxnTitle(txn)}
             </p>
             <p className="mt-1 truncate text-xs text-wn-muted">{formatTxnMeta(txn)}</p>
           </div>
@@ -193,7 +227,8 @@ function TransactionRow({ txn }) {
 }
 
 export default function Transactions() {
-  const [transactions] = useState(() => listInvestmentTransactions())
+  const location = useLocation()
+  const transactions = useMemo(() => listInvestmentTransactions(), [location.key])
   const [activeType, setActiveType] = useState('all')
   const [filterOpen, setFilterOpen] = useState(false)
   const [draftFilters, setDraftFilters] = useState({
@@ -227,7 +262,9 @@ export default function Transactions() {
   const filteredTransactions = useMemo(() => {
     const nextTransactions = transactions.filter((txn) => {
       const type = String(txn.type).toUpperCase()
-      const txnDate = String(txn.date ?? '')
+      const txnDate = parseComparableDate(txn.date)
+      const dateFrom = parseComparableDate(appliedFilters.dateFrom)
+      const dateTo = parseComparableDate(appliedFilters.dateTo)
 
       if (activeType !== 'all' && type !== activeType) {
         return false
@@ -247,11 +284,11 @@ export default function Transactions() {
         return false
       }
 
-      if (appliedFilters.dateFrom && txnDate < appliedFilters.dateFrom) {
+      if (dateFrom && (!txnDate || txnDate < dateFrom)) {
         return false
       }
 
-      if (appliedFilters.dateTo && txnDate > appliedFilters.dateTo) {
+      if (dateTo && (!txnDate || txnDate > dateTo)) {
         return false
       }
 
@@ -323,6 +360,35 @@ export default function Transactions() {
     return 'All dates'
   }, [draftFilters.dateFrom, draftFilters.dateTo])
 
+  const combinedFilterLabel = useMemo(() => {
+    const parts = []
+
+    if (activeType !== 'all') {
+      parts.push(`Quick type: ${activeType}`)
+    }
+
+    if (appliedFilters.category !== 'all') {
+      parts.push(`Category: ${getCategoryLabel(appliedFilters.category)}`)
+    }
+
+    if (appliedFilters.transactionType !== 'all') {
+      parts.push(`Panel type: ${appliedFilters.transactionType}`)
+    }
+
+    if (appliedFilters.dateFrom || appliedFilters.dateTo) {
+      parts.push(`Dates: ${draftDateRangeLabel}`)
+    }
+
+    return parts.join(' | ')
+  }, [
+    activeType,
+    appliedFilters.category,
+    appliedFilters.dateFrom,
+    appliedFilters.dateTo,
+    appliedFilters.transactionType,
+    draftDateRangeLabel,
+  ])
+
   return (
     <PageShell>
       <div className="space-y-4">
@@ -342,6 +408,11 @@ export default function Transactions() {
             </div>
           </div>
           <p className="mt-4 text-sm text-wn-muted">{dateRangeLabel}</p>
+          {combinedFilterLabel ? (
+            <p className="mt-2 text-sm text-wn-muted">
+              Active filters: {combinedFilterLabel}
+            </p>
+          ) : null}
           <p className="mt-2 text-sm text-wn-muted">
             {getMasterOnlyMessage(appliedFilters.category)}
           </p>

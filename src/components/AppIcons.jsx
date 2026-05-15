@@ -57,7 +57,6 @@ export function LedgerIcon({ size = 22, className }) {
       <path {...strokeProps} d="M8.75 9H15.75" />
       <path {...strokeProps} d="M8.75 12H15.75" />
       <path {...strokeProps} d="M8.75 15H13.25" />
-      <path {...strokeProps} d="M5.25 8.25H8" />
     </IconBase>
   )
 }

@@ -59,13 +59,13 @@ select {
 }
 
 option {
-  color: #edf4ff;
-  background-color: #121826;
+  color: var(--color-wn-text);
+  background-color: var(--color-wn-card);
 }
 
 :root[data-theme='light'] option {
-  color: #122033;
-  background-color: #ffffff;
+  color: var(--color-wn-text);
+  background-color: var(--color-wn-card);
 }
 
 button:active,

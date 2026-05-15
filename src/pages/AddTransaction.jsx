@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CategoryIconBadge } from '../components/CategoryVisuals'
 import DynamicForm from '../components/DynamicForm'
@@ -123,7 +123,9 @@ export default function AddTransaction() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const editingTransaction = location.state?.editingTransaction ?? null
+  const [editingTransaction, setEditingTransaction] = useState(
+    () => location.state?.editingTransaction ?? null,
+  )
 
   const activeTab = searchParams.get('tab') ?? (editingTransaction ? 'slave' : 'master')
   const masterCategory = searchParams.get('masterCategory') ?? ''
@@ -137,6 +139,7 @@ export default function AddTransaction() {
   const [isSavingSlave, setIsSavingSlave] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [slaveFormResetKey, setSlaveFormResetKey] = useState(0)
+  const [pendingDeleteMaster, setPendingDeleteMaster] = useState(null)
 
   const masterGroups = useMemo(() => listMasterRecords(), [refreshKey])
   const activeMasterRecords = useMemo(
@@ -254,16 +257,21 @@ export default function AddTransaction() {
   }
 
   function handleMasterDelete(category, record) {
-    const confirmed = window.confirm('Delete this account record? This action cannot be undone.')
+    setPendingDeleteMaster({ category, record })
+  }
 
-    if (!confirmed) {
+  function confirmMasterDelete() {
+    if (!pendingDeleteMaster) {
       return
     }
+
+    const { category, record } = pendingDeleteMaster
 
     const deleted = deleteMasterRecord(category, record.id)
 
     if (!deleted) {
       setStatusMessage('Account record could not be deleted.', 'error')
+      setPendingDeleteMaster(null)
       return
     }
 
@@ -273,10 +281,21 @@ export default function AddTransaction() {
 
     setRefreshKey((value) => value + 1)
     setStatusMessage('Account record deleted.')
+    setPendingDeleteMaster(null)
   }
 
   function handleSlaveCategorySelect(category) {
-    setStatusMessage('', 'success')
+    if (editingTransaction && editingTransaction.category !== category) {
+      setEditingTransaction(null)
+      setSlaveFormResetKey((value) => value + 1)
+      setStatusMessage(
+        'Category changed. Edit mode was cleared to avoid reusing fields from the previous entry.',
+        'info',
+      )
+    } else {
+      setStatusMessage('', 'success')
+    }
+
     updateFlowParams({
       tab: 'slave',
       slaveCategory: category,
@@ -328,19 +347,11 @@ export default function AddTransaction() {
     (!requiresMasterSelection(slaveCategory) || Boolean(selectedMaster) || Boolean(editingTransaction))
 
   return (
-    <PageShell
-      eyebrow={editingTransaction ? 'Update Entry' : 'Create Entry'}
-      title="Accounts And Entries"
-      description="Create account records, link them where required, and save investment entries with clearer status feedback."
-    >
+    <PageShell>
       <div className="space-y-4">
         <div className="sticky top-0 z-10 space-y-3 bg-wn-bg/96 pb-2 pt-1 backdrop-blur-xl">
-          <article className="glass-card p-5">
-            <p className="text-center text-base font-semibold text-wn-text">
-              {editingTransaction ? 'Edit Entry' : 'Create Record'}
-            </p>
-
-            <div className="mt-4 flex gap-2 rounded-full border border-white/8 bg-white/[0.03] p-1">
+          <article className="rounded-[24px] border border-wn-border bg-wn-card/88 p-3 shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
+            <div className="flex gap-2 rounded-full border border-wn-border bg-white/[0.03] p-1">
               <TabChip
                 active={activeTab === 'master'}
                 label="Accounts"
@@ -365,18 +376,19 @@ export default function AddTransaction() {
                 }}
               />
             </div>
+
+            <p className="mt-3 px-2 text-sm text-wn-muted">
+              {activeTab === 'master'
+                ? 'Create and manage reusable account records.'
+                : editingTransaction
+                  ? 'Update the selected investment entry.'
+                  : 'Record a new transaction against an account or direct category.'}
+            </p>
           </article>
         </div>
 
         {activeTab === 'master' ? (
           <section className="space-y-4">
-            <div className="px-1">
-              <p className="section-title">Accounts</p>
-              <p className="mt-1 text-sm text-wn-muted">
-                Maintain account-level records that remain available for reference and audit history.
-              </p>
-            </div>
-
             {masterCategory && activeMasterConfig ? (
               <section className="space-y-4">
                 <article className="glass-card p-4">
@@ -415,6 +427,33 @@ export default function AddTransaction() {
               </section>
             ) : (
               <>
+                <div className="px-1 pt-2">
+                  <p className="section-title">Choose Category</p>
+                  <p className="mt-1 text-sm text-wn-muted">
+                    Select a category to create or update its account record.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {masterCategoryOptions.map((option) => (
+                    <CategoryCard key={option.value} option={option} onSelect={handleMasterCategorySelect} />
+                  ))}
+                </div>
+
+                <article className="glass-card mt-2 p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/14 text-emerald-400">
+                      <ShieldCheck size={20} strokeWidth={2.1} />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-wn-text">What is Account Data?</p>
+                      <p className="mt-1 text-sm leading-6 text-wn-muted">
+                        Accounts data is one-time setup that you will use for adding transactions.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+
                 <div className="space-y-5">
                   {Object.entries(masterGroups).map(([category, records]) => {
                     if (records.length === 0) {
@@ -454,31 +493,11 @@ export default function AddTransaction() {
                     )
                   })}
                 </div>
-
-                <div className="px-1 pt-2">
-                  <p className="section-title">Create or Update Account</p>
-                  <p className="mt-1 text-sm text-wn-muted">
-                    Select a category to create or update its account record.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {masterCategoryOptions.map((option) => (
-                    <CategoryCard key={option.value} option={option} onSelect={handleMasterCategorySelect} />
-                  ))}
-                </div>
               </>
             )}
           </section>
         ) : (
           <section className="space-y-4">
-            <div className="px-1">
-              <p className="section-title">Add Entry</p>
-              <p className="mt-1 text-sm text-wn-muted">
-                Select a category, link an active account when required, and record the entry.
-              </p>
-            </div>
-
             {slaveCategory ? (
               <article className="glass-card p-4">
                 <div className="flex items-center justify-between gap-4">
@@ -515,6 +534,20 @@ export default function AddTransaction() {
                     <CategoryCard key={option.value} option={option} onSelect={handleSlaveCategorySelect} />
                   ))}
                 </div>
+
+                <article className="glass-card mt-2 p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-500/14 text-sky-400">
+                      <ShieldCheck size={20} strokeWidth={2.1} />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-wn-text">What is Add Entry?</p>
+                      <p className="mt-1 text-sm leading-6 text-wn-muted">
+                        Add Entry is used to record transactions for the selected category or account.
+                      </p>
+                    </div>
+                  </div>
+                </article>
               </>
             )}
 
@@ -627,6 +660,8 @@ export default function AddTransaction() {
                 'mt-3 rounded-[20px] border px-4 py-3 text-sm font-medium',
                 saveMessageTone === 'error'
                   ? 'border-rose-500/35 bg-rose-400/14 text-rose-200'
+                  : saveMessageTone === 'info'
+                    ? 'border-sky-500/35 bg-sky-400/14 text-sky-200'
                   : 'border-emerald-500/35 bg-emerald-400/16 text-emerald-900',
               ].join(' ')}
             >
@@ -651,6 +686,38 @@ export default function AddTransaction() {
               </button>
             ) : null}
           </article>
+        ) : null}
+
+        {pendingDeleteMaster ? (
+          <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 px-4 pb-6 pt-10 backdrop-blur sm:items-center">
+            <article
+              role="dialog"
+              aria-modal="true"
+              aria-label="Delete account confirmation"
+              className="glass-card w-full max-w-md p-5"
+            >
+              <p className="section-title">Delete Account Record?</p>
+              <p className="mt-2 text-sm text-wn-muted">
+                This will permanently remove the saved account record. Historical entries linked to it will not be restored automatically.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingDeleteMaster(null)}
+                  className="secondary-button"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmMasterDelete}
+                  className="inline-flex items-center justify-center rounded-2xl border border-rose-500/35 bg-rose-300/22 px-4 py-3 text-sm font-medium text-rose-950 hover:bg-rose-300/28"
+                >
+                  Delete
+                </button>
+              </div>
+            </article>
+          </div>
         ) : null}
       </div>
     </PageShell>

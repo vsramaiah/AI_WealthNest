@@ -66,6 +66,13 @@ function getHoldingDeltas(txn) {
     }
   }
 
+  if (rawData.txnType === 'TRANSFER') {
+    return {
+      quantity: 0,
+      invested: 0,
+    }
+  }
+
   return {
     quantity,
     invested: totalAmount,
@@ -89,6 +96,12 @@ export function getStockHoldings() {
 
       currentHolding.totalQuantity += deltas.quantity
       currentHolding.totalInvested += deltas.invested
+
+      if (currentHolding.totalQuantity <= 0) {
+        delete collection[ticker]
+        return collection
+      }
+
       collection[ticker] = currentHolding
 
       return collection

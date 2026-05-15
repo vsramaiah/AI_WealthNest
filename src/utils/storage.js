@@ -8,7 +8,6 @@ const defaultData = {
     rd: [],
     lic: [],
     ppf: [],
-    stocks: [],
   },
 }
 
@@ -34,6 +33,18 @@ function cloneDefaultData() {
   return JSON.parse(JSON.stringify(defaultData))
 }
 
+export function getDefaultData() {
+  return cloneDefaultData()
+}
+
+function buildStorageSaveError(error) {
+  if (error?.name === 'QuotaExceededError') {
+    return new Error('Local storage is full. Clear some data or export a backup before saving again.')
+  }
+
+  return new Error('Local storage is unavailable. Please try again.')
+}
+
 function normalizeData(data) {
   return {
     transactions: Array.isArray(data?.transactions)
@@ -45,7 +56,6 @@ function normalizeData(data) {
       rd: Array.isArray(data?.masters?.rd) ? data.masters.rd : [],
       lic: Array.isArray(data?.masters?.lic) ? data.masters.lic : [],
       ppf: Array.isArray(data?.masters?.ppf) ? data.masters.ppf : [],
-      stocks: Array.isArray(data?.masters?.stocks) ? data.masters.stocks : [],
     },
   }
 }
@@ -61,8 +71,7 @@ function hasValidShape(data) {
     Array.isArray(data.masters.fd) &&
     Array.isArray(data.masters.rd) &&
     Array.isArray(data.masters.lic) &&
-    Array.isArray(data.masters.ppf) &&
-    Array.isArray(data.masters.stocks)
+    Array.isArray(data.masters.ppf)
   )
 }
 
@@ -101,7 +110,12 @@ export function loadData() {
 
 export function saveData(data) {
   const nextData = normalizeData(data)
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData))
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData))
+  } catch (error) {
+    throw buildStorageSaveError(error)
+  }
+
   return nextData
 }
 

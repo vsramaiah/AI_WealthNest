@@ -69,10 +69,6 @@ function buildReminderStatus(date) {
     return 'Due Tomorrow'
   }
 
-  if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
-    return 'Missed'
-  }
-
   return ''
 }
 
@@ -81,6 +77,7 @@ function buildTransactionEvents() {
     .filter((txn) => txn.date)
     .map((txn) => {
       const date = parseDate(txn.date)
+      const raw = txn.rawData ?? {}
 
       if (!date) {
         return null
@@ -92,14 +89,41 @@ function buildTransactionEvents() {
         date,
         label: normalizeEventType(txn.type),
         rawType: txn.type,
-        title: txn.title,
+        title: txn.category === 'mf' ? raw.fundName ?? txn.title : txn.title,
+        subtitle:
+          txn.category === 'mf'
+            ? raw.folioNumber
+              ? `Folio ${raw.folioNumber}`
+              : raw.fundId
+                ? `ID ${raw.fundId}`
+                : ''
+            : '',
         category: txn.category,
         amount: Number(txn.amount) || 0,
+        masterId: raw.masterId ?? '',
         generated: false,
         reminderStatus: '',
       }
     })
     .filter(Boolean)
+}
+
+function hasMatchingTransaction(transactions, candidate) {
+  return transactions.some((event) => {
+    if (event.dateKey !== candidate.dateKey || event.category !== candidate.category) {
+      return false
+    }
+
+    if (candidate.masterId && event.masterId) {
+      return String(candidate.masterId) === String(event.masterId)
+    }
+
+    return (
+      String(event.rawType ?? '').toUpperCase() === String(candidate.rawType ?? '').toUpperCase() &&
+      Number(event.amount || 0) === Number(candidate.amount || 0) &&
+      String(event.title ?? '').trim().toUpperCase() === String(candidate.title ?? '').trim().toUpperCase()
+    )
+  })
 }
 
 function getMonthlyRecurringDates(viewDate, anchorDate, dayOfMonth) {
@@ -152,7 +176,7 @@ function getLicPremiumDates(viewDate, policy) {
   return results
 }
 
-function buildGeneratedEvents(viewDate) {
+function buildGeneratedEvents(viewDate, transactionEvents = []) {
   const events = []
   const data = loadData()
 
@@ -177,7 +201,7 @@ function buildGeneratedEvents(viewDate) {
           return
         }
 
-        events.push({
+        const nextEvent = {
           id: `mf-sip-${master.id}-${toDateKey(date)}`,
           dateKey: toDateKey(date),
           date,
@@ -186,9 +210,14 @@ function buildGeneratedEvents(viewDate) {
           title: master.fundName,
           category: 'mf',
           amount: Number(master.sipAmount) || 0,
+          masterId: master.id,
           generated: true,
           reminderStatus: buildReminderStatus(date),
-        })
+        }
+
+        if (!hasMatchingTransaction(transactionEvents, nextEvent)) {
+          events.push(nextEvent)
+        }
       })
     })
 
@@ -206,7 +235,7 @@ function buildGeneratedEvents(viewDate) {
         return
       }
 
-      events.push({
+      const nextEvent = {
         id: `rd-${rd.id}-${toDateKey(date)}`,
         dateKey: toDateKey(date),
         date,
@@ -215,15 +244,20 @@ function buildGeneratedEvents(viewDate) {
         title: rd.bankName,
         category: 'rd',
         amount: Number(rd.monthlyDeposit) || 0,
+        masterId: rd.id,
         generated: true,
         reminderStatus: buildReminderStatus(date),
-      })
+      }
+
+      if (!hasMatchingTransaction(transactionEvents, nextEvent)) {
+        events.push(nextEvent)
+      }
     })
   })
 
   ;(data.masters.lic ?? []).forEach((policy) => {
     getLicPremiumDates(viewDate, policy).forEach((date) => {
-      events.push({
+      const nextEvent = {
         id: `lic-${policy.id}-${toDateKey(date)}`,
         dateKey: toDateKey(date),
         date,
@@ -232,9 +266,14 @@ function buildGeneratedEvents(viewDate) {
         title: policy.policyName,
         category: 'lic',
         amount: Number(policy.premiumAmount) || 0,
+        masterId: policy.id,
         generated: true,
         reminderStatus: buildReminderStatus(date),
-      })
+      }
+
+      if (!hasMatchingTransaction(transactionEvents, nextEvent)) {
+        events.push(nextEvent)
+      }
     })
   })
 
@@ -246,7 +285,8 @@ export function getCalendarMonthModel(viewDate) {
   const monthEnd = endOfMonth(viewDate)
   const gridStart = addDays(monthStart, -monthStart.getDay())
   const gridEnd = addDays(monthEnd, 6 - monthEnd.getDay())
-  const mergedEvents = [...buildTransactionEvents(), ...buildGeneratedEvents(viewDate)]
+  const transactionEvents = buildTransactionEvents()
+  const mergedEvents = [...transactionEvents, ...buildGeneratedEvents(viewDate, transactionEvents)]
   const eventsByDate = mergedEvents.reduce((map, event) => {
     map[event.dateKey] = [...(map[event.dateKey] ?? []), event]
     return map
@@ -259,7 +299,14 @@ export function getCalendarMonthModel(viewDate) {
     const events = (eventsByDate[dateKey] ?? []).sort((left, right) =>
       left.label.localeCompare(right.label),
     )
-    const totalAmount = events.reduce((sum, event) => sum + (Number(event.amount) || 0), 0)
+    const transactionEvents = events.filter((event) => !event.generated)
+    const totalAmount = events.reduce((sum, event) => {
+      if (event.generated) {
+        return sum
+      }
+
+      return sum + (Number(event.amount) || 0)
+    }, 0)
 
     days.push({
       date: new Date(cursor),
@@ -267,9 +314,9 @@ export function getCalendarMonthModel(viewDate) {
       dayNumber: cursor.getDate(),
       isCurrentMonth: cursor.getMonth() === viewDate.getMonth(),
       isToday: dateKey === toDateKey(new Date()),
-      hasEvents: events.length > 0,
+      hasEvents: transactionEvents.length > 0,
       totalAmount,
-      events,
+      events: transactionEvents,
     })
 
     cursor = addDays(cursor, 1)

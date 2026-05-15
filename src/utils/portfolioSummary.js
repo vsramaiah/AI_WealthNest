@@ -44,14 +44,25 @@ function getStockSummary() {
       const rawData = getTransactionRawData(txn)
       const ticker = String(rawData.ticker ?? '').trim() || txn.id
       const current = collection[ticker] ?? {
-        grossValue: 0,
+        invested: 0,
         charges: 0,
-        totalAmount: 0,
+        quantity: 0,
+      }
+      const quantity = toNumber(rawData.quantity)
+      const grossValue = toNumber(txn.calculated?.grossValue)
+      const totalAmount = toNumber(txn.calculated?.totalAmount)
+      const charges = toNumber(rawData.charges)
+      const txnType = normalizeTxnType(rawData.txnType)
+
+      if (txnType === 'SELL') {
+        current.quantity -= quantity
+        current.invested -= totalAmount
+      } else if (txnType === 'BUY') {
+        current.quantity += quantity
+        current.invested += totalAmount
       }
 
-      current.grossValue += toNumber(txn.calculated?.grossValue)
-      current.charges += toNumber(rawData.charges)
-      current.totalAmount += toNumber(txn.calculated?.totalAmount)
+      current.charges += charges
       collection[ticker] = current
 
       return collection
@@ -60,23 +71,27 @@ function getStockSummary() {
   const aggregate = holdings.reduce(
     (summary, holding) => {
       const metrics = groupedMetrics[holding.ticker] ?? {
-        grossValue: 0,
+        invested: 0,
         charges: 0,
-        totalAmount: 0,
+        quantity: 0,
       }
+      const positionQuantity = Math.max(toNumber(holding.totalQuantity), 0)
+      const averageCostPerShare =
+        positionQuantity > 0 ? toNumber(metrics.invested) / positionQuantity : 0
+      const invested = averageCostPerShare * positionQuantity
 
-      summary.value += toNumber(metrics.totalAmount)
-      summary.invested += toNumber(metrics.grossValue)
-      summary.grossValue += toNumber(metrics.grossValue)
+      summary.value += invested
+      summary.invested += invested
+      summary.grossValue += invested
       summary.charges += toNumber(metrics.charges)
-      summary.totalQuantity += toNumber(holding.totalQuantity)
+      summary.totalQuantity += positionQuantity
       summary.details.push({
         id: holding.ticker,
         title: `${holding.stockName} (${holding.ticker})`,
-        subtitle: `Qty ${holding.totalQuantity}`,
-        value: toNumber(metrics.totalAmount),
-        invested: toNumber(metrics.grossValue),
-        grossValue: toNumber(metrics.grossValue),
+        subtitle: `Qty ${positionQuantity}`,
+        value: invested,
+        invested,
+        grossValue: invested,
         charges: toNumber(metrics.charges),
       })
       return summary
@@ -237,15 +252,17 @@ function getGoldSilverCategorySummary() {
         totalGrams: 0,
         charges: 0,
       }
-      const invested = toNumber(txn.calculated?.totalValue)
+      const sign = normalizeTxnType(rawData.txnType) === 'SELL' ? -1 : 1
+      const invested = toNumber(txn.calculated?.totalValue) * sign
       const grams = toNumber(rawData.quantity)
       const charges = toNumber(rawData.charges)
 
       current.value += invested
       current.invested += invested
-      current.totalGrams += grams
+      current.totalGrams += grams * sign
       current.charges += charges
-      current.subtitle = grams > 0 ? `${current.totalGrams.toFixed(4)} grams` : current.subtitle
+      current.subtitle =
+        current.totalGrams > 0 ? `${current.totalGrams.toFixed(4)} grams` : current.subtitle
       collection[assetType] = current
 
       return collection

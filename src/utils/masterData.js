@@ -9,7 +9,15 @@ import {
   updateMutualFundMaster,
 } from './mutualFunds'
 import {
+  bondsCategory,
+  cryptoCategory,
+  epfCategory,
+  npsCategory,
+  bondsSchema,
+  cryptoSchema,
+  epfSchema,
   licMasterSchema,
+  npsSchema,
   ppfCategory,
   rdMasterSchema,
 } from './otherInvestments'
@@ -17,7 +25,21 @@ import { loadData, saveData } from './storage'
 import { transactionCategoryOptions, transactionSchemas } from './transactionSchemas'
 
 function todayValue() {
-  return new Date().toISOString().slice(0, 10)
+  const today = new Date()
+  const timezoneOffsetMs = today.getTimezoneOffset() * 60 * 1000
+  return new Date(today.getTime() - timezoneOffsetMs).toISOString().slice(0, 10)
+}
+
+function getFinancialYearValue(dateValue = todayValue()) {
+  const date = parseDate(dateValue)
+
+  if (!date) {
+    return ''
+  }
+
+  const year = date.getMonth() >= 3 ? date.getFullYear() : date.getFullYear() - 1
+  const nextYearShort = String((year + 1) % 100).padStart(2, '0')
+  return `${year}-${nextYearShort}`
 }
 
 function parseDate(value) {
@@ -72,6 +94,21 @@ function formatRecurringDueDate(dayValue, fallbackDate = '') {
 function toAmount(value) {
   const numericValue = Number(value)
   return Number.isFinite(numericValue) ? numericValue : 0
+}
+
+function buildStatusField() {
+  return {
+    name: 'status',
+    label: 'Status',
+    type: 'select',
+    placeholder: 'Choose status',
+    required: true,
+    defaultValue: 'ACTIVE',
+    options: [
+      { label: 'ACTIVE', value: 'ACTIVE' },
+      { label: 'CLOSED', value: 'CLOSED' },
+    ],
+  }
 }
 
 function getRecordStatus(record) {
@@ -160,17 +197,29 @@ const mfSlaveSchema = mutualFundTransactionSchema.filter((field) =>
 
 const rdSlaveSchema = [
   {
+    name: 'txnType',
+    label: 'Transaction Type',
+    type: 'select',
+    placeholder: 'Choose transaction type',
+    required: true,
+    defaultValue: 'DEPOSIT',
+    options: [
+      { label: 'DEPOSIT', value: 'DEPOSIT' },
+      { label: 'INTEREST', value: 'INTEREST' },
+    ],
+  },
+  {
     name: 'date',
-    label: 'Deposit Date',
+    label: 'Transaction Date',
     type: 'date',
     required: true,
     defaultValue: todayValue(),
   },
   {
     name: 'amount',
-    label: 'Deposit Amount',
+    label: 'Amount',
     type: 'number',
-    placeholder: 'Enter deposit amount',
+    placeholder: 'Enter amount',
     required: true,
     min: 0,
     step: '0.01',
@@ -191,6 +240,14 @@ const licSlaveSchema = [
     type: 'date',
     required: true,
     defaultValue: todayValue(),
+  },
+  {
+    name: 'financialYear',
+    label: 'Financial Year',
+    type: 'text',
+    placeholder: 'Enter financial year',
+    required: true,
+    defaultValue: getFinancialYearValue(),
   },
   {
     name: 'amount',
@@ -299,6 +356,48 @@ const ppfSlaveSchema = (transactionSchemas[ppfCategory] ?? []).filter((field) =>
   ['txnType', 'date', 'amount', 'notes'].includes(field.name),
 )
 
+const epfMasterSchema = [
+  ...epfSchema.filter((field) =>
+    ['employerName', 'uanNumber', 'memberId', 'joiningDate', 'exitDate', 'notes'].includes(field.name),
+  ),
+  buildStatusField(),
+]
+
+const epfSlaveSchema = epfSchema.filter((field) =>
+  ['txnType', 'date', 'employeeContribution', 'employerContribution', 'notes'].includes(field.name),
+)
+
+const npsMasterSchema = [
+  ...npsSchema.filter((field) => ['pranNumber', 'tier', 'scheme', 'notes'].includes(field.name)),
+  buildStatusField(),
+]
+
+const npsSlaveSchema = npsSchema.filter((field) =>
+  ['txnType', 'date', 'amount', 'notes'].includes(field.name),
+)
+
+const bondsMasterSchema = [
+  ...bondsSchema.filter((field) =>
+    ['bondName', 'issuer', 'couponRate', 'couponPaymentDate', 'maturityDate', 'notes'].includes(field.name),
+  ),
+  buildStatusField(),
+]
+
+const bondsSlaveSchema = bondsSchema.filter((field) =>
+  ['txnType', 'purchaseDate', 'faceValue', 'quantity', 'notes'].includes(field.name),
+)
+
+const cryptoMasterSchema = [
+  ...cryptoSchema.filter((field) =>
+    ['coinName', 'symbol', 'network', 'exchange', 'notes'].includes(field.name),
+  ),
+  buildStatusField(),
+]
+
+const cryptoSlaveSchema = cryptoSchema.filter((field) =>
+  ['date', 'txnType', 'quantity', 'price', 'charges', 'notes'].includes(field.name),
+)
+
 export const masterCategoryConfigs = {
   mf: {
     category: 'mf',
@@ -356,6 +455,7 @@ export const masterCategoryConfigs = {
       status: getRecordStatus(record),
     }),
     buildSlaveInitialValues: (master) => ({
+      txnType: 'DEPOSIT',
       date: todayValue(),
       amount: master?.monthlyDeposit ?? '',
       notes: '',
@@ -363,12 +463,12 @@ export const masterCategoryConfigs = {
     buildSlaveRawData: (fields, master) => ({
       ...fields,
       masterId: master.id,
-      txnType: 'DEPOSIT',
+      txnType: fields.txnType,
       bankName: master.bankName,
       accountNumber: master.accountNumber,
       interestRate: master.interestRate,
       tenureMonths: master.tenureMonths,
-      transactionType: 'DEPOSIT',
+      transactionType: fields.txnType,
     }),
     slaveSchema: rdSlaveSchema,
   },
@@ -390,6 +490,7 @@ export const masterCategoryConfigs = {
     }),
     buildSlaveInitialValues: (master) => ({
       date: todayValue(),
+      financialYear: getFinancialYearValue(),
       amount: master?.premiumAmount ?? '',
       notes: '',
     }),
@@ -406,7 +507,7 @@ export const masterCategoryConfigs = {
   },
   ppf: {
     category: 'ppf',
-    label: 'PPF Accounts',
+    label: 'PPF',
     storageKey: 'ppf',
     masterSchema: ppfMasterSchema,
     listRecords: () => loadData().masters.ppf ?? [],
@@ -441,6 +542,143 @@ export const masterCategoryConfigs = {
       status: master.status,
     }),
     slaveSchema: ppfSlaveSchema,
+  },
+  [epfCategory]: {
+    category: epfCategory,
+    label: 'EPF',
+    storageKey: epfCategory,
+    masterSchema: epfMasterSchema,
+    listRecords: () => loadData().masters[epfCategory] ?? [],
+    saveRecord: (fields) => createGenericMasterRecord(epfCategory, fields),
+    updateRecord: (id, fields) => updateGenericMasterRecord(epfCategory, id, fields),
+    deleteRecord: (id) => deleteGenericMasterRecord(epfCategory, id),
+    buildCard: (record) => ({
+      title: record.employerName || 'EPF Account',
+      identifier: record.memberId ? `Member ${record.memberId}` : record.uanNumber ? `UAN ${record.uanNumber}` : 'Account unavailable',
+      amount: 0,
+      dueDate: formatDate(record.joiningDate),
+      status: getRecordStatus(record),
+    }),
+    buildSlaveInitialValues: () => ({
+      txnType: 'INVEST',
+      date: todayValue(),
+      employeeContribution: '',
+      employerContribution: '',
+      notes: '',
+    }),
+    buildSlaveRawData: (fields, master) => ({
+      ...fields,
+      masterId: master.id,
+      employerName: master.employerName,
+      uanNumber: master.uanNumber,
+      memberId: master.memberId,
+      joiningDate: master.joiningDate,
+      exitDate: master.exitDate,
+      transactionType: fields.txnType,
+    }),
+    slaveSchema: epfSlaveSchema,
+  },
+  [npsCategory]: {
+    category: npsCategory,
+    label: 'NPS',
+    storageKey: npsCategory,
+    masterSchema: npsMasterSchema,
+    listRecords: () => loadData().masters[npsCategory] ?? [],
+    saveRecord: (fields) => createGenericMasterRecord(npsCategory, fields),
+    updateRecord: (id, fields) => updateGenericMasterRecord(npsCategory, id, fields),
+    deleteRecord: (id) => deleteGenericMasterRecord(npsCategory, id),
+    buildCard: (record) => ({
+      title: record.scheme || 'NPS Account',
+      identifier: record.pranNumber ? `PRAN ${record.pranNumber}` : 'Account unavailable',
+      amount: 0,
+      dueDate: record.tier || 'Not scheduled',
+      status: getRecordStatus(record),
+    }),
+    buildSlaveInitialValues: () => ({
+      txnType: 'INVEST',
+      date: todayValue(),
+      amount: '',
+      notes: '',
+    }),
+    buildSlaveRawData: (fields, master) => ({
+      ...fields,
+      masterId: master.id,
+      pranNumber: master.pranNumber,
+      tier: master.tier,
+      scheme: master.scheme,
+      transactionType: fields.txnType,
+    }),
+    slaveSchema: npsSlaveSchema,
+  },
+  [bondsCategory]: {
+    category: bondsCategory,
+    label: 'Bonds',
+    storageKey: bondsCategory,
+    masterSchema: bondsMasterSchema,
+    listRecords: () => loadData().masters[bondsCategory] ?? [],
+    saveRecord: (fields) => createGenericMasterRecord(bondsCategory, fields),
+    updateRecord: (id, fields) => updateGenericMasterRecord(bondsCategory, id, fields),
+    deleteRecord: (id) => deleteGenericMasterRecord(bondsCategory, id),
+    buildCard: (record) => ({
+      title: record.bondName || 'Bond',
+      identifier: record.issuer ? `Issuer ${record.issuer}` : 'Issuer unavailable',
+      amount: 0,
+      dueDate: formatDate(record.couponPaymentDate || record.maturityDate),
+      status: getRecordStatus(record),
+    }),
+    buildSlaveInitialValues: () => ({
+      txnType: 'BUY',
+      purchaseDate: todayValue(),
+      faceValue: '',
+      quantity: '',
+      notes: '',
+    }),
+    buildSlaveRawData: (fields, master) => ({
+      ...fields,
+      masterId: master.id,
+      bondName: master.bondName,
+      issuer: master.issuer,
+      couponRate: master.couponRate,
+      couponPaymentDate: master.couponPaymentDate,
+      maturityDate: master.maturityDate,
+      transactionType: fields.txnType,
+    }),
+    slaveSchema: bondsSlaveSchema,
+  },
+  [cryptoCategory]: {
+    category: cryptoCategory,
+    label: 'Crypto',
+    storageKey: cryptoCategory,
+    masterSchema: cryptoMasterSchema,
+    listRecords: () => loadData().masters[cryptoCategory] ?? [],
+    saveRecord: (fields) => createGenericMasterRecord(cryptoCategory, fields),
+    updateRecord: (id, fields) => updateGenericMasterRecord(cryptoCategory, id, fields),
+    deleteRecord: (id) => deleteGenericMasterRecord(cryptoCategory, id),
+    buildCard: (record) => ({
+      title: record.coinName || 'Crypto',
+      identifier: record.symbol ? `${record.symbol}` : 'Symbol unavailable',
+      amount: 0,
+      dueDate: record.network || 'Not scheduled',
+      status: getRecordStatus(record),
+    }),
+    buildSlaveInitialValues: () => ({
+      date: todayValue(),
+      txnType: 'BUY',
+      quantity: '',
+      price: '',
+      charges: 0,
+      notes: '',
+    }),
+    buildSlaveRawData: (fields, master) => ({
+      ...fields,
+      masterId: master.id,
+      coinName: master.coinName,
+      symbol: master.symbol,
+      network: master.network,
+      exchange: master.exchange,
+      transactionType: fields.txnType,
+    }),
+    slaveSchema: cryptoSlaveSchema,
   },
 }
 
@@ -550,7 +788,7 @@ export function getSlaveSchema(category) {
 }
 
 export function buildSlaveInitialValues(category, master, editingTransaction = null) {
-  if (editingTransaction) {
+  if (editingTransaction && editingTransaction.category === category) {
     return editingTransaction.rawData ?? null
   }
 
