@@ -141,7 +141,7 @@ export default function CalendarView() {
 
       {selectedDay ? (
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto bg-black/55 px-4 pb-6 pt-10 backdrop-blur sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/55 px-4 pb-28 pt-10 backdrop-blur sm:items-center sm:pb-6"
           onClick={() => setSelectedDay(null)}
         >
           <div

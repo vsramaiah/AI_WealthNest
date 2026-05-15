@@ -100,6 +100,7 @@ export function listInvestmentTransactions() {
           0,
         title:
           rawData.stockName ??
+          rawData.fundName ??
           rawData.fundId ??
           rawData.coinName ??
           rawData.propertyName ??
