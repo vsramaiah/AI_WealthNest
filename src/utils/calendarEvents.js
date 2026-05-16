@@ -44,11 +44,11 @@ function normalizeEventType(type) {
     return 'SIP'
   }
 
-  if (normalizedType === 'BUY') {
+  if (normalizedType === 'BUY' || normalizedType === 'TRANSFER IN') {
     return 'BUY'
   }
 
-  if (normalizedType === 'SELL' || normalizedType === 'REDEEM') {
+  if (normalizedType === 'SELL' || normalizedType === 'REDEEM' || normalizedType === 'TRANSFER OUT') {
     return 'SELL'
   }
 

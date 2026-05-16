@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
 import { hasMasterConfig } from '../utils/masterData'
+import { getStockLineItems } from '../utils/stockTransactions'
 import { transactionCategoryOptions } from '../utils/transactionSchemas'
 import { listInvestmentTransactions } from '../utils/transactionEngine'
 
@@ -26,13 +27,21 @@ function formatTxnMeta(txn) {
   const raw = txn.rawData ?? {}
 
   if (txn.category === 'stocks') {
-    return `${raw.quantity ?? 0} Shares @ ${formatCurrency(raw.pricePerShare ?? 0)}`
+    const lineItems = getStockLineItems(raw)
+
+    if (lineItems.length > 1) {
+      const totalQuantity = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+      return `${lineItems.length} stocks - Qty ${totalQuantity} - Charges ${formatCurrency(raw.charges ?? 0)}`
+    }
+
+    const item = lineItems[0] ?? {}
+    return `${item.quantity ?? 0} Shares @ ${formatCurrency(item.pricePerShare ?? 0)}`
   }
 
   if (txn.category === 'mf') {
     const folioText = raw.folioNumber ? `Folio ${raw.folioNumber}` : raw.fundId ? `ID ${raw.fundId}` : ''
     const unitsText = raw.units ? `${raw.units} Units` : formatCurrency(raw.amount ?? 0)
-    return folioText ? `${folioText} · ${unitsText}` : unitsText
+    return folioText ? `${folioText} - ${unitsText}` : unitsText
   }
 
   if (txn.category === 'ppf') {
@@ -64,6 +73,11 @@ function formatTxnTitle(txn) {
 
   if (txn.category === 'mf') {
     return raw.fundName || txn.title
+  }
+
+  if (txn.category === 'stocks') {
+    const lineItems = getStockLineItems(raw)
+    return lineItems.length > 1 ? `${lineItems.length} Stocks Basket` : txn.title
   }
 
   return txn.title
@@ -150,14 +164,47 @@ function getMasterOnlyMessage(category) {
   return 'Saved account records also support due-date tracking and reminders across the app.'
 }
 
+function matchesRecordFilter(txn, recordFilter) {
+  if (!recordFilter?.category || txn.category !== recordFilter.category) {
+    return false
+  }
+
+  const raw = txn.rawData ?? {}
+  const itemId = String(recordFilter.itemId ?? '').trim()
+
+  switch (recordFilter.category) {
+    case 'mf':
+    case 'rd':
+    case 'lic':
+    case 'ppf':
+    case 'epf':
+    case 'nps':
+    case 'crypto':
+      return String(raw.masterId ?? '').trim() === itemId
+    case 'stocks':
+      return getStockLineItems(raw).some(
+        (item) => String(item.ticker ?? '').trim().toUpperCase() === itemId.toUpperCase(),
+      )
+    case 'goldSilver':
+      return String(raw.assetType ?? '').trim().toLowerCase() === itemId.toLowerCase()
+    case 'bonds':
+      return String(raw.masterId ?? '').trim() === itemId || String(txn.id) === itemId
+    case 'fd':
+    case 'realEstate':
+      return String(txn.id) === itemId
+    default:
+      return String(txn.id) === itemId
+  }
+}
+
 function toneForType(type) {
   const normalized = String(type).toUpperCase()
 
-  if (normalized === 'BUY' || normalized === 'SIP' || normalized === 'INVEST' || normalized === 'DEPOSIT' || normalized === 'INTEREST') {
+  if (normalized === 'BUY' || normalized === 'SIP' || normalized === 'INVEST' || normalized === 'DEPOSIT' || normalized === 'INTEREST' || normalized === 'TRANSFER IN') {
     return 'text-emerald-400'
   }
 
-  if (normalized === 'SELL' || normalized === 'REDEEM') {
+  if (normalized === 'SELL' || normalized === 'REDEEM' || normalized === 'TRANSFER OUT') {
     return 'text-rose-400'
   }
 
@@ -167,11 +214,11 @@ function toneForType(type) {
 function badgeTone(type) {
   const normalized = String(type).toUpperCase()
 
-  if (normalized === 'BUY') {
+  if (normalized === 'BUY' || normalized === 'TRANSFER IN') {
     return 'bg-sky-500'
   }
 
-  if (normalized === 'SELL' || normalized === 'REDEEM') {
+  if (normalized === 'SELL' || normalized === 'REDEEM' || normalized === 'TRANSFER OUT') {
     return 'bg-rose-500'
   }
 
@@ -228,20 +275,21 @@ function TransactionRow({ txn }) {
 
 export default function Transactions() {
   const location = useLocation()
+  const recordFilter = location.state?.recordFilter ?? null
   const transactions = useMemo(() => listInvestmentTransactions(), [location.key])
   const [activeType, setActiveType] = useState('all')
   const [filterOpen, setFilterOpen] = useState(false)
   const [draftFilters, setDraftFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    category: 'all',
+    category: recordFilter?.category ?? 'all',
     transactionType: 'all',
     sortBy: 'latest',
   })
   const [appliedFilters, setAppliedFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    category: 'all',
+    category: recordFilter?.category ?? 'all',
     transactionType: 'all',
     sortBy: 'latest',
   })
@@ -265,6 +313,10 @@ export default function Transactions() {
       const txnDate = parseComparableDate(txn.date)
       const dateFrom = parseComparableDate(appliedFilters.dateFrom)
       const dateTo = parseComparableDate(appliedFilters.dateTo)
+
+      if (recordFilter && !matchesRecordFilter(txn, recordFilter)) {
+        return false
+      }
 
       if (activeType !== 'all' && type !== activeType) {
         return false
@@ -313,7 +365,7 @@ export default function Transactions() {
     }
 
     return sortedTransactions
-  }, [activeType, appliedFilters, transactions])
+  }, [activeType, appliedFilters, recordFilter, transactions])
 
   const groupedTransactions = useMemo(() => {
     return filteredTransactions.reduce((collection, txn) => {
@@ -363,6 +415,10 @@ export default function Transactions() {
   const combinedFilterLabel = useMemo(() => {
     const parts = []
 
+    if (recordFilter?.title) {
+      parts.push(`Entry: ${recordFilter.title}`)
+    }
+
     if (activeType !== 'all') {
       parts.push(`Quick type: ${activeType}`)
     }
@@ -387,6 +443,7 @@ export default function Transactions() {
     appliedFilters.dateTo,
     appliedFilters.transactionType,
     draftDateRangeLabel,
+    recordFilter?.title,
   ])
 
   return (
@@ -610,3 +667,4 @@ export default function Transactions() {
     </PageShell>
   )
 }
+

@@ -63,7 +63,8 @@ const stockSchema = [
     options: [
       { label: 'BUY', value: 'BUY' },
       { label: 'SELL', value: 'SELL' },
-      { label: 'TRANSFER', value: 'TRANSFER' },
+      { label: 'TRANSFER IN', value: 'TRANSFER IN' },
+      { label: 'TRANSFER OUT', value: 'TRANSFER OUT' },
     ],
   },
   {

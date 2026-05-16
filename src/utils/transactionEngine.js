@@ -16,7 +16,7 @@ import {
   saveOtherInvestment,
   updateOtherInvestment,
 } from './otherInvestments'
-import { calculateStockTransaction, stockCategory } from './stockTransactions'
+import { calculateStockTransaction, getStockLineItems, stockCategory } from './stockTransactions'
 
 function cloneRawData(rawData) {
   return JSON.parse(JSON.stringify(rawData ?? {}))
@@ -72,6 +72,14 @@ export function listInvestmentTransactions() {
   return loadData().transactions
     .map((txn) => {
       const rawData = getTransactionRawData(txn)
+      const stockLineItems =
+        txn.category === stockCategory ? getStockLineItems(rawData) : []
+      const primaryStockLineItem = stockLineItems[0] ?? null
+      const primaryStockTitle = primaryStockLineItem
+        ? primaryStockLineItem.stockName
+          ? `${primaryStockLineItem.stockName}${primaryStockLineItem.ticker ? ` (${primaryStockLineItem.ticker})` : ''}`
+          : primaryStockLineItem.ticker
+        : null
 
       return {
         id: txn.id,
@@ -99,6 +107,12 @@ export function listInvestmentTransactions() {
           rawData.faceValue ??
           0,
         title:
+          (txn.category === stockCategory
+            ? rawData.batchLabel ??
+              (stockLineItems.length > 1
+                ? `${stockLineItems.length} Stocks Basket`
+                : primaryStockTitle)
+            : null) ??
           rawData.stockName ??
           rawData.fundName ??
           rawData.fundId ??

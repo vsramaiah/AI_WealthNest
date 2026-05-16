@@ -7,17 +7,83 @@ function toNumber(value) {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
+function normalizeText(value) {
+  return String(value ?? '').trim()
+}
+
+export function getStockLineItems(rawData = {}) {
+  const lineItems = Array.isArray(rawData.lineItems) && rawData.lineItems.length > 0
+    ? rawData.lineItems
+    : [
+        {
+          ticker: rawData.ticker,
+          stockName: rawData.stockName,
+          quantity: rawData.quantity,
+          pricePerShare: rawData.pricePerShare,
+        },
+      ]
+
+  return lineItems
+    .map((item, index) => ({
+      id: item.id ?? `line-${index + 1}`,
+      ticker: normalizeText(item.ticker),
+      stockName: normalizeText(item.stockName),
+      quantity: toNumber(item.quantity),
+      pricePerShare: toNumber(item.pricePerShare),
+    }))
+    .filter((item) => item.ticker || item.stockName || item.quantity || item.pricePerShare)
+}
+
+export function allocateStockLineCharges(lineItems, totalCharges) {
+  const grossTotal = lineItems.reduce(
+    (sum, item) => sum + toNumber(item.quantity) * toNumber(item.pricePerShare),
+    0,
+  )
+  const charges = toNumber(totalCharges)
+
+  if (grossTotal <= 0 || charges <= 0) {
+    return lineItems.map((item) => ({
+      ...item,
+      grossValue: toNumber(item.quantity) * toNumber(item.pricePerShare),
+      allocatedCharges: 0,
+      totalAmount: toNumber(item.quantity) * toNumber(item.pricePerShare),
+    }))
+  }
+
+  let allocatedSum = 0
+
+  return lineItems.map((item, index) => {
+    const grossValue = toNumber(item.quantity) * toNumber(item.pricePerShare)
+    const allocatedCharges =
+      index === lineItems.length - 1
+        ? Number((charges - allocatedSum).toFixed(2))
+        : Number(((grossValue / grossTotal) * charges).toFixed(2))
+
+    allocatedSum += allocatedCharges
+
+    return {
+      ...item,
+      grossValue,
+      allocatedCharges,
+      totalAmount: grossValue + allocatedCharges,
+    }
+  })
+}
+
 export function calculateStockTransaction(fields) {
-  const quantity = toNumber(fields.quantity)
-  const pricePerShare = toNumber(fields.pricePerShare)
+  const lineItems = getStockLineItems(fields)
+  const grossValue = lineItems.reduce(
+    (sum, item) => sum + toNumber(item.quantity) * toNumber(item.pricePerShare),
+    0,
+  )
   const charges = toNumber(fields.charges)
-  const grossValue = quantity * pricePerShare
-  const totalAmount =
-    fields.txnType === 'SELL' ? grossValue - charges : grossValue + charges
+  const isOutflow = fields.txnType === 'SELL' || fields.txnType === 'TRANSFER OUT'
+  const totalAmount = isOutflow ? grossValue - charges : grossValue + charges
 
   return {
     grossValue,
     totalAmount,
+    lineItems: allocateStockLineCharges(lineItems, charges),
   }
 }
 
@@ -40,36 +106,29 @@ export function getStockTransactions() {
     .filter((txn) => txn.category === stockCategory)
     .map((txn) => {
       const rawData = getTransactionRawData(txn)
+      const lineItems = getStockLineItems(rawData)
 
       return {
         id: txn.id,
-        ticker: rawData.ticker,
-        stockName: rawData.stockName,
+        ticker: lineItems.map((item) => item.ticker).filter(Boolean).join(', '),
+        stockName: rawData.batchLabel ?? `${lineItems.length} stock${lineItems.length === 1 ? '' : 's'}`,
         date: rawData.tradeDate,
         amount: txn.calculated?.totalAmount ?? 0,
         txnType: rawData.txnType,
-        quantity: rawData.quantity,
+        quantity: lineItems.reduce((sum, item) => sum + toNumber(item.quantity), 0),
       }
     })
     .sort((left, right) => String(right.date).localeCompare(String(left.date)))
 }
 
-function getHoldingDeltas(txn) {
-  const rawData = getTransactionRawData(txn)
-  const quantity = toNumber(rawData.quantity)
-  const totalAmount = toNumber(txn.calculated?.totalAmount)
+function getHoldingDeltas(lineItem, txnType) {
+  const quantity = toNumber(lineItem.quantity)
+  const totalAmount = toNumber(lineItem.totalAmount)
 
-  if (rawData.txnType === 'SELL') {
+  if (txnType === 'SELL' || txnType === 'TRANSFER OUT') {
     return {
       quantity: -quantity,
       invested: -totalAmount,
-    }
-  }
-
-  if (rawData.txnType === 'TRANSFER') {
-    return {
-      quantity: 0,
-      invested: 0,
     }
   }
 
@@ -85,24 +144,37 @@ export function getStockHoldings() {
     .filter((txn) => txn.category === stockCategory)
     .reduce((collection, txn) => {
       const rawData = getTransactionRawData(txn)
-      const ticker = rawData.ticker
-      const currentHolding = collection[ticker] ?? {
-        ticker,
-        stockName: rawData.stockName,
-        totalQuantity: 0,
-        totalInvested: 0,
-      }
-      const deltas = getHoldingDeltas(txn)
+      const txnType = normalizeText(rawData.txnType).toUpperCase()
+      const lineItems =
+        Array.isArray(txn.calculated?.lineItems) && txn.calculated.lineItems.length > 0
+          ? txn.calculated.lineItems
+          : allocateStockLineCharges(getStockLineItems(rawData), rawData.charges)
 
-      currentHolding.totalQuantity += deltas.quantity
-      currentHolding.totalInvested += deltas.invested
+      lineItems.forEach((lineItem) => {
+        const ticker = normalizeText(lineItem.ticker)
 
-      if (currentHolding.totalQuantity <= 0) {
-        delete collection[ticker]
-        return collection
-      }
+        if (!ticker) {
+          return
+        }
 
-      collection[ticker] = currentHolding
+        const currentHolding = collection[ticker] ?? {
+          ticker,
+          stockName: lineItem.stockName || ticker,
+          totalQuantity: 0,
+          totalInvested: 0,
+        }
+        const deltas = getHoldingDeltas(lineItem, txnType)
+
+        currentHolding.totalQuantity += deltas.quantity
+        currentHolding.totalInvested += deltas.invested
+
+        if (currentHolding.totalQuantity <= 0) {
+          delete collection[ticker]
+          return
+        }
+
+        collection[ticker] = currentHolding
+      })
 
       return collection
     }, {})

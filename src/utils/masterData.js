@@ -188,7 +188,28 @@ function createGenericMasterRecord(category, fields) {
 }
 
 function getMfTxnType(master) {
-  return master.transactionType ?? master.investmentType ?? 'SIP'
+  return master?.transactionType ?? master?.investmentType ?? 'SIP'
+}
+
+function getMfMasterAmount(master) {
+  if (!master) {
+    return ''
+  }
+
+  return getMfTxnType(master) === 'LUMPSUM' ? master.amount : master.sipAmount
+}
+
+function getMfMasterDate(master) {
+  if (!master) {
+    return 'Not scheduled'
+  }
+
+  return getMfTxnType(master) === 'LUMPSUM'
+    ? ''
+    : formatRecurringDueDate(
+        resolveSipDebitDay(master.sipDueDate, master.sipStartDate),
+        master.sipStartDate,
+      )
 }
 
 const mfSlaveSchema = mutualFundTransactionSchema.filter((field) =>
@@ -412,16 +433,13 @@ export const masterCategoryConfigs = {
     buildCard: (record) => ({
       title: record.fundName || 'Mutual Fund',
       identifier: record.folioNumber ? `Folio ${record.folioNumber}` : 'Folio unavailable',
-      amount: toAmount(record.sipAmount),
-      dueDate: formatRecurringDueDate(
-        resolveSipDebitDay(record.sipDueDate, record.sipStartDate),
-        record.sipStartDate,
-      ),
+      amount: toAmount(getMfMasterAmount(record)),
+      dueDate: getMfMasterDate(record),
       status: getRecordStatus(record),
     }),
     buildSlaveInitialValues: (master) => ({
       date: todayValue(),
-      amount: master?.sipAmount ?? '',
+      amount: getMfMasterAmount(master) ?? '',
       nav: '',
       units: '',
       notes: '',

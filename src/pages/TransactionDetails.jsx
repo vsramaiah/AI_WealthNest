@@ -1,9 +1,10 @@
-import { ArrowLeft, Pencil, Share2, Trash2 } from 'lucide-react'
+import { Pencil, Share2, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CategoryIconBadge } from '../components/CategoryVisuals'
 import PageShell from '../components/PageShell'
 import { getCategoryMeta } from '../utils/categoryCatalog'
+import { getStockLineItems } from '../utils/stockTransactions'
 import {
   getInvestmentTransactionById,
   removeInvestmentTransaction,
@@ -45,20 +46,22 @@ function buildDetailRows(txn) {
   const calculated = txn.calculated ?? {}
 
   switch (txn.category) {
-    case 'stocks':
+    case 'stocks': {
+      const lineItems = getStockLineItems(raw)
       return [
         ['Trade Date', formatDate(raw.tradeDate)],
         ['Exchange', formatText(raw.exchange)],
         ['Broker', formatText(raw.broker)],
         ['Order Type', formatText(raw.orderType)],
-        ['Stock Ticker', formatText(raw.ticker)],
-        ['Stock Name', formatText(raw.stockName)],
-        ['Quantity', raw.quantity ?? 'Not available'],
-        ['Price Per Share', formatCurrency(raw.pricePerShare ?? 0)],
+        ['Transaction Type', formatText(raw.txnType)],
+        ['Stocks Count', lineItems.length],
+        ['Stocks', lineItems.map((item) => `${item.stockName || item.ticker} (${item.ticker})`).join(', ') || 'Not available'],
+        ['Total Quantity', lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)],
         ['Gross Value', formatCurrency(calculated.grossValue ?? 0)],
         ['Charges', formatCurrency(raw.charges ?? 0)],
         ['Total Amount', formatCurrency(calculated.totalAmount ?? txn.amount ?? 0), true],
       ]
+    }
     case 'mf':
       return [
         ['Transaction Date', formatDate(raw.date)],
@@ -225,19 +228,12 @@ export default function TransactionDetails() {
 
   if (!txn) {
     return (
-      <PageShell>
+      <PageShell backTo="/transactions" backLabel="Back to Transactions">
         <article className="glass-card p-5">
           <p className="section-title">Transaction not found</p>
           <p className="mt-2 text-sm text-wn-muted">
             This transaction may have been deleted or is no longer available.
           </p>
-          <button
-            type="button"
-            onClick={() => navigate('/transactions')}
-            className="mt-4 secondary-button"
-          >
-            Back to Transactions
-          </button>
         </article>
       </PageShell>
     )
@@ -279,16 +275,10 @@ export default function TransactionDetails() {
   }
 
   return (
-    <PageShell>
+    <PageShell backTo="/transactions" backLabel="Back to Transactions">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 px-1">
-          <button
-            type="button"
-            onClick={() => navigate('/transactions')}
-            className="secondary-button h-10 w-10 rounded-2xl px-0 py-0"
-          >
-            <ArrowLeft size={18} strokeWidth={2.1} />
-          </button>
+          <div className="w-10 shrink-0" />
           <p className="text-lg font-semibold text-wn-text">Transaction Details</p>
           <button
             type="button"
@@ -336,7 +326,7 @@ export default function TransactionDetails() {
           <button
             type="button"
             onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex items-center justify-center rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm font-semibold text-rose-300"
+            className="inline-flex items-center justify-center rounded-2xl border border-rose-500/35 bg-rose-300/22 px-4 py-4 text-sm font-semibold text-rose-950 hover:bg-rose-300/28"
           >
             <Trash2 size={17} />
             <span className="ml-2">Delete</span>
@@ -351,7 +341,7 @@ export default function TransactionDetails() {
                 },
               })
             }
-            className="inline-flex items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-500/12 px-4 py-4 text-sm font-semibold text-sky-300"
+            className="inline-flex items-center justify-center rounded-2xl border border-sky-500/35 bg-sky-300/20 px-4 py-4 text-sm font-semibold text-sky-950 hover:bg-sky-300/26"
           >
             <Pencil size={17} />
             <span className="ml-2">Edit</span>
@@ -381,7 +371,7 @@ export default function TransactionDetails() {
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="inline-flex items-center justify-center rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-300"
+                  className="inline-flex items-center justify-center rounded-2xl border border-rose-500/35 bg-rose-300/22 px-4 py-3 text-sm font-semibold text-rose-950 hover:bg-rose-300/28"
                 >
                   Delete
                 </button>

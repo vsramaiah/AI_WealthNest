@@ -12,7 +12,7 @@ import {
   realEstateCategory,
 } from './otherInvestments'
 import { getTransactionRawData, loadData } from './storage'
-import { getStockHoldings } from './stockTransactions'
+import { allocateStockLineCharges, getStockHoldings, getStockLineItems } from './stockTransactions'
 import { categoryCatalog, getCategoryMeta } from './categoryCatalog'
 
 function toNumber(value) {
@@ -42,28 +42,31 @@ function getStockSummary() {
     .filter((txn) => txn.category === 'stocks')
     .reduce((collection, txn) => {
       const rawData = getTransactionRawData(txn)
-      const ticker = String(rawData.ticker ?? '').trim() || txn.id
-      const current = collection[ticker] ?? {
-        invested: 0,
-        charges: 0,
-        quantity: 0,
-      }
-      const quantity = toNumber(rawData.quantity)
-      const grossValue = toNumber(txn.calculated?.grossValue)
-      const totalAmount = toNumber(txn.calculated?.totalAmount)
-      const charges = toNumber(rawData.charges)
       const txnType = normalizeTxnType(rawData.txnType)
+      const lineItems =
+        Array.isArray(txn.calculated?.lineItems) && txn.calculated.lineItems.length > 0
+          ? txn.calculated.lineItems
+          : allocateStockLineCharges(getStockLineItems(rawData), rawData.charges)
 
-      if (txnType === 'SELL') {
-        current.quantity -= quantity
-        current.invested -= totalAmount
-      } else if (txnType === 'BUY') {
-        current.quantity += quantity
-        current.invested += totalAmount
-      }
+      lineItems.forEach((lineItem) => {
+        const ticker = String(lineItem.ticker ?? '').trim() || txn.id
+        const current = collection[ticker] ?? {
+          invested: 0,
+          charges: 0,
+          quantity: 0,
+        }
 
-      current.charges += charges
-      collection[ticker] = current
+        if (txnType === 'SELL' || txnType === 'TRANSFER OUT') {
+          current.quantity -= toNumber(lineItem.quantity)
+          current.invested -= toNumber(lineItem.totalAmount)
+        } else if (txnType === 'BUY' || txnType === 'TRANSFER IN') {
+          current.quantity += toNumber(lineItem.quantity)
+          current.invested += toNumber(lineItem.totalAmount)
+        }
+
+        current.charges += toNumber(lineItem.allocatedCharges)
+        collection[ticker] = current
+      })
 
       return collection
     }, {})
@@ -79,11 +82,13 @@ function getStockSummary() {
       const averageCostPerShare =
         positionQuantity > 0 ? toNumber(metrics.invested) / positionQuantity : 0
       const invested = averageCostPerShare * positionQuantity
+      const charges = toNumber(metrics.charges)
+      const grossValue = Math.max(invested - charges, 0)
 
       summary.value += invested
       summary.invested += invested
-      summary.grossValue += invested
-      summary.charges += toNumber(metrics.charges)
+      summary.grossValue += grossValue
+      summary.charges += charges
       summary.totalQuantity += positionQuantity
       summary.details.push({
         id: holding.ticker,
@@ -91,8 +96,8 @@ function getStockSummary() {
         subtitle: `Qty ${positionQuantity}`,
         value: invested,
         invested,
-        grossValue: invested,
-        charges: toNumber(metrics.charges),
+        grossValue,
+        charges,
       })
       return summary
     },
@@ -466,7 +471,7 @@ function getCryptoCategorySummary() {
       title: `${rawData.coinName} (${rawData.symbol})`,
       subtitle: rawData.exchange,
       value: totalAmount,
-      invested: grossValue,
+      invested: totalAmount,
       grossValue,
       charges,
     }

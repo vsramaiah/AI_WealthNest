@@ -8,7 +8,6 @@ import Settings from './pages/Settings'
 import TransactionDetails from './pages/TransactionDetails'
 import Transactions from './pages/Transactions'
 import UpcomingReminders from './pages/UpcomingReminders'
-import UpcomingSips from './pages/UpcomingSips'
 
 function NotFound() {
   return (
@@ -40,7 +39,6 @@ export default function App() {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/transactions/:transactionId" element={<TransactionDetails />} />
         <Route path="/upcoming-reminders" element={<UpcomingReminders />} />
-        <Route path="/upcoming-sips" element={<UpcomingSips />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Route>

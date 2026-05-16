@@ -1,5 +1,4 @@
-import { ArrowLeft, Layers3 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Layers3 } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import { getReminders } from '../utils/reminders'
 
@@ -20,13 +19,10 @@ export default function UpcomingReminders() {
       eyebrow="Schedules"
       title="Upcoming Reminders"
       description="Review all upcoming due dates generated from your saved account and investment records."
+      backTo="/home"
+      backLabel="Back to Home"
     >
       <div className="space-y-4">
-        <Link to="/home" className="secondary-button inline-flex">
-          <ArrowLeft size={16} />
-          <span className="ml-2">Back to Home</span>
-        </Link>
-
         {reminders.length > 0 ? (
           <div className="space-y-3">
             {reminders.map((reminder) => (

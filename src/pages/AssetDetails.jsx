@@ -1,5 +1,5 @@
-import { ArrowLeft, ArrowUpRight } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { ArrowUpRight } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import PageShell from '../components/PageShell'
 import { getCategoryDetails } from '../utils/portfolioSummary'
 
@@ -44,8 +44,13 @@ function isRealEstateCategory(category) {
   return category.id === 'realEstate'
 }
 
+function isGrossChargesTotalCategory(category) {
+  return isStockCategory(category) || isCryptoCategory(category)
+}
+
 export default function AssetDetails() {
   const { categoryId } = useParams()
+  const navigate = useNavigate()
   const category = getCategoryDetails(categoryId)
 
   if (!category) {
@@ -54,12 +59,9 @@ export default function AssetDetails() {
         eyebrow="Details"
         title="Asset details unavailable"
         description="We could not find detail data for this category."
-      >
-        <Link to="/portfolio" className="secondary-button inline-flex">
-          <ArrowLeft size={16} />
-          <span className="ml-2">Back to Portfolio</span>
-        </Link>
-      </PageShell>
+        backTo="/portfolio"
+        backLabel="Back to Portfolio"
+      />
     )
   }
 
@@ -68,6 +70,8 @@ export default function AssetDetails() {
       eyebrow={category.group}
       title={category.label}
       description="A category-level detail view with summary cards and individual saved records."
+      backTo="/portfolio"
+      backLabel="Back to Portfolio"
     >
       <div className="space-y-4">
         <article className="glass-card p-5">
@@ -92,9 +96,8 @@ export default function AssetDetails() {
           >
             <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
               <p className="metric-label">
-                {isStockCategory(category)
-                  || isCryptoCategory(category)
-                  ? 'Invested'
+                {isGrossChargesTotalCategory(category)
+                  ? 'Gross Value'
                   : isGoldSilverCategory(category)
                     ? 'Invested'
                   : isRealEstateCategory(category)
@@ -108,15 +111,16 @@ export default function AssetDetails() {
                       : 'Value'}
               </p>
               <p className="mt-2 text-sm font-semibold text-wn-text">
-                {formatCurrency(category.value)}
+                {formatCurrency(
+                  isGrossChargesTotalCategory(category) ? category.grossValue ?? 0 : category.value,
+                )}
               </p>
             </div>
             {isRealEstateCategory(category) ? null : (
               <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
                 <p className="metric-label">
-                  {isStockCategory(category)
-                    || isCryptoCategory(category)
-                    ? 'Gross Value'
+                  {isGrossChargesTotalCategory(category)
+                    ? 'Charges'
                     : isGoldSilverCategory(category)
                       ? 'Total Grams'
                     : isMutualFundCategory(category)
@@ -132,17 +136,33 @@ export default function AssetDetails() {
                     ? Number(category.totalUnits ?? 0).toFixed(4)
                     : isGoldSilverCategory(category)
                       ? `${Number(category.totalGrams ?? 0).toFixed(4)} g`
-                      : formatCurrency(isStockCategory(category) || isCryptoCategory(category) ? category.grossValue : category.invested)}
+                      : formatCurrency(
+                          isGrossChargesTotalCategory(category)
+                            ? category.charges ?? 0
+                            : category.invested,
+                        )}
                 </p>
               </div>
             )}
             {isInsuranceCategory(category) || isMutualFundCategory(category) || isRealEstateCategory(category) ? null : (
               <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
                 <p className="metric-label">
-                  {isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? 'Charges' : isFixedIncomeCategory(category) ? 'Interest' : 'P/L'}
+                  {isGrossChargesTotalCategory(category)
+                    ? 'Invested'
+                    : isGoldSilverCategory(category)
+                      ? 'Charges'
+                      : isFixedIncomeCategory(category)
+                        ? 'Interest'
+                        : 'P/L'}
                 </p>
-                <p className={`mt-2 text-sm font-semibold ${isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? 'text-wn-text' : profitTone(category.profitLoss)}`}>
-                  {formatCurrency(isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? category.charges : category.profitLoss)}
+                <p className={`mt-2 text-sm font-semibold ${isGrossChargesTotalCategory(category) || isGoldSilverCategory(category) ? 'text-wn-text' : profitTone(category.profitLoss)}`}>
+                  {formatCurrency(
+                    isGrossChargesTotalCategory(category)
+                      ? category.invested
+                      : isGoldSilverCategory(category)
+                        ? category.charges
+                        : category.profitLoss,
+                  )}
                 </p>
               </div>
             )}
@@ -151,7 +171,22 @@ export default function AssetDetails() {
 
         {category.details.length > 0 ? (
           category.details.map((item) => (
-            <article key={item.id} className="glass-card p-5">
+            <button
+              key={item.id}
+              type="button"
+              onClick={() =>
+                navigate('/transactions', {
+                  state: {
+                    recordFilter: {
+                      category: category.id,
+                      itemId: item.id,
+                      title: item.title,
+                    },
+                  },
+                })
+              }
+              className="glass-card block w-full p-5 text-left"
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-base font-semibold text-wn-text">{item.title}</p>
@@ -175,9 +210,8 @@ export default function AssetDetails() {
               >
                 <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
                   <p className="metric-label">
-                    {isStockCategory(category)
-                      || isCryptoCategory(category)
-                      ? 'Invested'
+                    {isGrossChargesTotalCategory(category)
+                      ? 'Gross Value'
                       : isGoldSilverCategory(category)
                         ? 'Invested'
                       : isRealEstateCategory(category)
@@ -191,15 +225,16 @@ export default function AssetDetails() {
                           : 'Value'}
                   </p>
                   <p className="mt-2 text-sm font-semibold text-wn-text">
-                    {formatCurrency(item.value ?? 0)}
+                    {formatCurrency(
+                      isGrossChargesTotalCategory(category) ? item.grossValue ?? 0 : item.value ?? 0,
+                    )}
                   </p>
                 </div>
                 {isRealEstateCategory(category) ? null : (
                   <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
                     <p className="metric-label">
-                      {isStockCategory(category)
-                        || isCryptoCategory(category)
-                        ? 'Gross Value'
+                      {isGrossChargesTotalCategory(category)
+                        ? 'Charges'
                         : isGoldSilverCategory(category)
                           ? 'Total Grams'
                         : isMutualFundCategory(category)
@@ -215,15 +250,25 @@ export default function AssetDetails() {
                         ? Number(item.totalUnits ?? 0).toFixed(4)
                         : isGoldSilverCategory(category)
                           ? `${Number(item.totalGrams ?? 0).toFixed(4)} g`
-                          : formatCurrency(isStockCategory(category) || isCryptoCategory(category) ? item.grossValue ?? 0 : item.invested ?? 0)}
+                          : formatCurrency(
+                              isGrossChargesTotalCategory(category)
+                                ? item.charges ?? 0
+                                : item.invested ?? 0,
+                            )}
                     </p>
                   </div>
                 )}
-                {isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? (
+                {isGrossChargesTotalCategory(category) || isGoldSilverCategory(category) ? (
                   <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                    <p className="metric-label">Charges</p>
+                    <p className="metric-label">
+                      {isGrossChargesTotalCategory(category) ? 'Invested' : 'Charges'}
+                    </p>
                     <p className="mt-2 text-sm font-semibold text-wn-text">
-                      {formatCurrency(item.charges ?? 0)}
+                      {formatCurrency(
+                        isGrossChargesTotalCategory(category)
+                          ? item.invested ?? 0
+                          : item.charges ?? 0,
+                      )}
                     </p>
                   </div>
                 ) : null}
@@ -236,7 +281,7 @@ export default function AssetDetails() {
                   </div>
                 ) : null}
               </div>
-            </article>
+            </button>
           ))
         ) : (
           <article className="glass-card p-5">

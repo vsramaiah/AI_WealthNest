@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { CategoryIconBadge } from '../components/CategoryVisuals'
 import DynamicForm from '../components/DynamicForm'
 import PageShell from '../components/PageShell'
+import StockBasketForm from '../components/StockBasketForm'
 import {
   buildMasterCardMeta,
   deleteMasterRecord,
@@ -65,6 +66,8 @@ function CategoryCard({ option, onSelect }) {
 }
 
 function RecordCard({ category, record, meta, onDelete, onEdit, onToggleStatus, statusActionLabel }) {
+  const hasDueDate = Boolean(`${meta.dueDate ?? ''}`.trim())
+
   return (
     <article className="glass-card p-3.5">
       <div className="flex items-start justify-between gap-3">
@@ -75,15 +78,17 @@ function RecordCard({ category, record, meta, onDelete, onEdit, onToggleStatus, 
         <CategoryIconBadge categoryId={category} size={16} className="h-9 w-9 shrink-0" />
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <div className={`mt-3 grid gap-2 ${hasDueDate ? 'grid-cols-3' : 'grid-cols-2'}`}>
         <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
           <p className="metric-label">Amount</p>
           <p className="mt-1.5 text-xs font-semibold text-wn-text">{formatCurrency(meta.amount)}</p>
         </div>
-        <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
-          <p className="metric-label">Due Date</p>
-          <p className="mt-1.5 text-xs font-semibold text-wn-text">{meta.dueDate}</p>
-        </div>
+        {hasDueDate ? (
+          <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
+            <p className="metric-label">Due Date</p>
+            <p className="mt-1.5 text-xs font-semibold text-wn-text">{meta.dueDate}</p>
+          </div>
+        ) : null}
         <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
           <p className="metric-label">Status</p>
           <p className={`mt-1.5 text-xs font-semibold ${meta.status === 'ACTIVE' ? 'text-emerald-300' : 'text-amber-300'}`}>
@@ -564,6 +569,7 @@ export default function AddTransaction() {
                   <div className="space-y-3">
                     {activeMasterRecords.map((record) => {
                       const meta = buildMasterCardMeta(slaveCategory, record)
+                      const hasDueDate = Boolean(`${meta.dueDate ?? ''}`.trim())
 
                       return (
                         <button
@@ -586,15 +592,17 @@ export default function AddTransaction() {
                             <CategoryIconBadge categoryId={slaveCategory} size={16} className="h-9 w-9 shrink-0" />
                           </div>
 
-                          <div className="mt-3 grid grid-cols-3 gap-2">
+                          <div className={`mt-3 grid gap-2 ${hasDueDate ? 'grid-cols-3' : 'grid-cols-2'}`}>
                             <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
                               <p className="metric-label">Amount</p>
                               <p className="mt-1.5 text-xs font-semibold text-wn-text">{formatCurrency(meta.amount)}</p>
                             </div>
-                            <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
-                              <p className="metric-label">Due Date</p>
-                              <p className="mt-1.5 text-xs font-semibold text-wn-text">{meta.dueDate}</p>
-                            </div>
+                            {hasDueDate ? (
+                              <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
+                                <p className="metric-label">Due Date</p>
+                                <p className="mt-1.5 text-xs font-semibold text-wn-text">{meta.dueDate}</p>
+                              </div>
+                            ) : null}
                             <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
                               <p className="metric-label">Status</p>
                               <p className="mt-1.5 text-xs font-semibold text-emerald-300">{meta.status}</p>
@@ -628,6 +636,18 @@ export default function AddTransaction() {
             ) : null}
 
             {canRenderSlaveForm && slaveSchema.length > 0 ? (
+              slaveCategory === 'stocks' ? (
+                <StockBasketForm
+                  key={`${slaveCategory}-${editingTransaction?.id ?? 'new'}-${slaveFormResetKey}`}
+                  category={slaveCategory}
+                  initialValues={slaveInitialValues}
+                  submitLabel={editingTransaction ? 'Update Entry' : 'Save Entry'}
+                  isSubmitting={isSavingSlave}
+                  title="Transaction Details"
+                  description="Record multiple stock line items in one broker trade with combined charges."
+                  onSubmit={handleSlaveSubmit}
+                />
+              ) : (
                 <DynamicForm
                   key={`${slaveCategory}-${selectedMasterId || 'direct'}-${editingTransaction?.id ?? 'new'}-${slaveFormResetKey}`}
                   category={slaveCategory}
@@ -639,6 +659,7 @@ export default function AddTransaction() {
                   description="Fields are generated from the selected category configuration."
                   onSubmit={handleSlaveSubmit}
                 />
+              )
             ) : null}
 
             {canRenderSlaveForm && slaveSchema.length === 0 ? (

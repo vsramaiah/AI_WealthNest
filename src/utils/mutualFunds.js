@@ -42,9 +42,15 @@ export function getMutualFundMasterFormValues(master) {
     return null
   }
 
+  const transactionType = master.transactionType ?? master.investmentType ?? 'SIP'
+
   return {
     ...master,
-    sipDueDate: resolveSipDebitDay(master.sipDueDate, master.sipStartDate) ?? '',
+    transactionType,
+    sipDueDate:
+      transactionType === 'SIP'
+        ? resolveSipDebitDay(master.sipDueDate, master.sipStartDate) ?? ''
+        : '',
   }
 }
 
@@ -89,18 +95,27 @@ export const mutualFundMasterSchema = [
     required: false,
     min: 0,
     step: '0.01',
+    showWhen: {
+      transactionType: 'SIP',
+    },
   },
   {
     name: 'sipStartDate',
     label: 'SIP Start Date',
     type: 'date',
     required: false,
+    showWhen: {
+      transactionType: 'SIP',
+    },
   },
   {
     name: 'sipEndDate',
     label: 'SIP End Date',
     type: 'date',
     required: false,
+    showWhen: {
+      transactionType: 'SIP',
+    },
   },
   {
     name: 'sipDueDate',
@@ -111,6 +126,30 @@ export const mutualFundMasterSchema = [
     min: 1,
     max: 31,
     step: '1',
+    showWhen: {
+      transactionType: 'SIP',
+    },
+  },
+  {
+    name: 'amount',
+    label: 'Amount',
+    type: 'number',
+    placeholder: 'Enter amount',
+    required: false,
+    min: 0,
+    step: '0.01',
+    showWhen: {
+      transactionType: 'LUMPSUM',
+    },
+  },
+  {
+    name: 'date',
+    label: 'Date',
+    type: 'date',
+    required: false,
+    showWhen: {
+      transactionType: 'LUMPSUM',
+    },
   },
   {
     name: 'status',
@@ -229,12 +268,19 @@ export const mutualFundTransactionSchema = [
 
 export function createMutualFundMaster(fields) {
   const transactionType = fields.transactionType ?? fields.investmentType ?? 'SIP'
+  const isSip = transactionType === 'SIP'
 
   return {
     id: fields.id ?? crypto.randomUUID(),
     ...fields,
     transactionType,
     investmentType: transactionType,
+    sipAmount: isSip ? fields.sipAmount ?? '' : '',
+    sipStartDate: isSip ? fields.sipStartDate ?? '' : '',
+    sipEndDate: isSip ? fields.sipEndDate ?? '' : '',
+    sipDueDate: isSip ? fields.sipDueDate ?? '' : '',
+    amount: isSip ? '' : fields.amount ?? '',
+    date: isSip ? '' : fields.date ?? '',
     status: fields.status ?? 'ACTIVE',
   }
 }
