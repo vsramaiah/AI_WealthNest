@@ -141,14 +141,14 @@ export default function CalendarView() {
 
       {selectedDay ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/55 px-4 pb-28 pt-10 backdrop-blur sm:items-center sm:pb-6"
+          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/55 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-10 backdrop-blur sm:items-center sm:pb-6"
           onClick={() => setSelectedDay(null)}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-label={`Day details for ${formatDate(selectedDay.date)}`}
-            className="glass-card w-full max-w-md p-5"
+            className="glass-card flex max-h-[calc(100vh-11rem)] w-full max-w-md flex-col overflow-hidden p-5 sm:max-h-[calc(100vh-5rem)]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
@@ -170,7 +170,7 @@ export default function CalendarView() {
               </button>
             </div>
 
-            <div className="mt-4 max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+            <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
               {selectedDay.events.map((event) => (
                 <article key={event.id} className="rounded-[22px] border border-white/8 bg-white/[0.04] p-4">
                   <div className="flex items-center justify-between gap-3">
