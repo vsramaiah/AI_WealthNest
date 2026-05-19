@@ -32,7 +32,7 @@ export default function AppLayout() {
 
       <Header />
 
-      <main className="relative z-10 flex-1 overflow-y-auto px-4 pb-28 pt-3">
+      <main className="relative z-10 flex-1 overflow-y-auto px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-3">
         <Outlet />
       </main>
 

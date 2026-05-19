@@ -349,7 +349,7 @@ export default function TransactionDetails() {
         </div>
 
         {showDeleteConfirm ? (
-          <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 px-4 pb-6 pt-10 backdrop-blur sm:items-center">
+          <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto bg-black/55 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-10 backdrop-blur sm:items-center sm:pb-6">
             <article
               role="dialog"
               aria-modal="true"
