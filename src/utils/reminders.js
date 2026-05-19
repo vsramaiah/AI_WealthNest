@@ -113,7 +113,7 @@ function buildDateReminder({
     title,
     amount,
     dueDate: formatDate(date),
-    message: subtitle ? `${subtitle} · Due ${formatDate(date)}` : `Due ${formatDate(date)}`,
+    message: subtitle || '',
   }
 }
 
@@ -146,7 +146,7 @@ export function getReminders() {
       type: 'SIP',
       title: sip.title,
       amount: sip.amount,
-      message: `${sip.subtitle} · Due ${sip.dueDate}`,
+      message: sip.subtitle,
       dueDate: sip.dueDate,
     })
   })

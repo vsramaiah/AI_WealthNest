@@ -65,6 +65,27 @@ function CategoryCard({ option, onSelect }) {
   )
 }
 
+function ExplainerCard({ title, description, tone = 'emerald' }) {
+  const toneClassName =
+    tone === 'sky'
+      ? 'bg-sky-500/14 text-sky-400'
+      : 'bg-emerald-500/14 text-emerald-400'
+
+  return (
+    <article className="glass-card mt-2 p-4">
+      <div className="flex items-start gap-4">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${toneClassName}`}>
+          <ShieldCheck size={20} strokeWidth={2.1} />
+        </div>
+        <div>
+          <p className="text-base font-semibold text-wn-text">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-wn-muted">{description}</p>
+        </div>
+      </div>
+    </article>
+  )
+}
+
 function RecordCard({ category, record, meta, onDelete, onEdit, onToggleStatus, statusActionLabel }) {
   const hasDueDate = Boolean(`${meta.dueDate ?? ''}`.trim())
 
@@ -327,7 +348,7 @@ export default function AddTransaction() {
       }
 
       setRefreshKey((value) => value + 1)
-      setStatusMessage(editingTransaction ? 'Entry updated locally.' : 'Entry saved locally.')
+      setStatusMessage(editingTransaction ? 'Entry updated successfully.' : 'Entry saved successfully.')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unexpected storage error.'
       setStatusMessage(`Entry could not be saved. ${message}`, 'error')
@@ -445,19 +466,10 @@ export default function AddTransaction() {
                   ))}
                 </div>
 
-                <article className="glass-card mt-2 p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/14 text-emerald-400">
-                      <ShieldCheck size={20} strokeWidth={2.1} />
-                    </div>
-                    <div>
-                      <p className="text-base font-semibold text-wn-text">What is Account Data?</p>
-                      <p className="mt-1 text-sm leading-6 text-wn-muted">
-                        Accounts data is one-time setup that you will use for adding transactions.
-                      </p>
-                    </div>
-                  </div>
-                </article>
+                <ExplainerCard
+                  title="Account Setup"
+                  description="Accounts are one-time records you can reuse while adding new entries."
+                />
 
                 <div className="space-y-5">
                   {Object.entries(masterGroups).map(([category, records]) => {
@@ -540,19 +552,11 @@ export default function AddTransaction() {
                   ))}
                 </div>
 
-                <article className="glass-card mt-2 p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-500/14 text-sky-400">
-                      <ShieldCheck size={20} strokeWidth={2.1} />
-                    </div>
-                    <div>
-                      <p className="text-base font-semibold text-wn-text">What is Add Entry?</p>
-                      <p className="mt-1 text-sm leading-6 text-wn-muted">
-                        Add Entry is used to record transactions for the selected category or account.
-                      </p>
-                    </div>
-                  </div>
-                </article>
+                <ExplainerCard
+                  title="Add Entry"
+                  description="Use this area to record a new transaction for the selected category or account."
+                  tone="sky"
+                />
               </>
             )}
 

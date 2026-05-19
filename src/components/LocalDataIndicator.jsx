@@ -5,7 +5,7 @@ export default function LocalDataIndicator() {
     <article className="glass-card p-5">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-[1.35rem] font-semibold tracking-tight text-wn-text">
+          <p className="text-sm font-semibold text-wn-text">
             Data stored locally
           </p>
           <p className="mt-2 text-sm text-wn-muted">

@@ -31,7 +31,7 @@ import { getDefaultData, saveData } from '../utils/storage'
 
 function SettingRow({ icon: Icon, iconTone, title, subtitle, children }) {
   return (
-    <div className="flex items-center gap-4 rounded-[24px] border border-white/6 bg-white/[0.03] p-4">
+    <div className="flex flex-col gap-4 rounded-[24px] border border-white/6 bg-white/[0.03] p-4 sm:flex-row sm:items-center">
       <div className={`icon-badge h-11 w-11 rounded-2xl bg-gradient-to-br ${iconTone}`}>
         <Icon size={18} strokeWidth={2.1} />
       </div>
@@ -39,7 +39,7 @@ function SettingRow({ icon: Icon, iconTone, title, subtitle, children }) {
         <p className="text-sm font-semibold text-wn-text">{title}</p>
         <p className="mt-1 text-sm text-wn-muted">{subtitle}</p>
       </div>
-      <div className="shrink-0">
+      <div className="w-full shrink-0 sm:w-auto">
         {children}
       </div>
     </div>
@@ -423,12 +423,20 @@ export default function Settings() {
           />
         </article>
 
+        <article className="glass-card rounded-[30px] px-6 py-5">
+          <p className="text-sm font-semibold text-wn-text">
+            Built with <span className="mx-1 text-rose-500">❤</span> by VISIRA
+          </p>
+        </article>
+
         <LocalDataIndicator />
 
         {statusMessage ? (
           <article className="glass-card p-5">
             <p className="section-title">Status</p>
-            <p className="mt-2 text-sm text-wn-muted">{statusMessage}</p>
+            <p className="mt-3 rounded-[20px] border border-sky-500/30 bg-sky-400/12 px-4 py-3 text-sm font-medium text-sky-100">
+              {statusMessage}
+            </p>
           </article>
         ) : null}
 

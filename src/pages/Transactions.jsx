@@ -1,6 +1,7 @@
 import { CalendarDays, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { CategoryIconBadge } from '../components/CategoryVisuals'
 import PageShell from '../components/PageShell'
 import { hasMasterConfig } from '../utils/masterData'
 import { getStockLineItems } from '../utils/stockTransactions'
@@ -211,32 +212,6 @@ function toneForType(type) {
   return 'text-sky-400'
 }
 
-function badgeTone(type) {
-  const normalized = String(type).toUpperCase()
-
-  if (normalized === 'BUY' || normalized === 'TRANSFER IN') {
-    return 'bg-sky-500'
-  }
-
-  if (normalized === 'SELL' || normalized === 'REDEEM' || normalized === 'TRANSFER OUT') {
-    return 'bg-rose-500'
-  }
-
-  if (normalized === 'SIP') {
-    return 'bg-violet-500'
-  }
-
-  if (normalized === 'INTEREST') {
-    return 'bg-blue-500'
-  }
-
-  if (normalized === 'DEPOSIT') {
-    return 'bg-emerald-500'
-  }
-
-  return 'bg-emerald-500'
-}
-
 function TransactionRow({ txn }) {
   const navigate = useNavigate()
 
@@ -252,9 +227,11 @@ function TransactionRow({ txn }) {
             <p className="mt-1 text-xs text-wn-muted">{formatShortMonth(txn.date)}</p>
           </div>
 
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white ${badgeTone(txn.type)}`}>
-            {String(txn.type).slice(0, 3).toUpperCase()}
-          </div>
+          <CategoryIconBadge
+            categoryId={txn.category}
+            size={16}
+            className="h-8 w-8 shrink-0"
+          />
 
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-wn-text">

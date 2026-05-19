@@ -156,7 +156,7 @@ export default function Home() {
               <div>
                 <p className="metric-label">Portfolio Value</p>
                 <p className="mt-3 text-[2.35rem] font-semibold tracking-tight text-wn-text">
-                  {showNetWorth ? formatCurrency(overview.totalNetWorth) : '₹x,xxx'}
+                  {showNetWorth ? formatCurrency(overview.totalNetWorth) : '\u20B9x,xxx'}
                 </p>
                 <p className="mt-3 flex items-center gap-2 text-sm font-medium text-wn-success">
                   <TrendingUp size={16} strokeWidth={2.2} />
@@ -275,8 +275,22 @@ export default function Home() {
             {reminders.length > 0 ? (
               reminders.map((reminder) => (
                 <div key={reminder.id} className="rounded-[22px] border border-white/6 bg-white/[0.03] p-4">
-                  <p className="text-sm font-semibold text-wn-text">{reminder.title}</p>
-                  <p className="mt-2 text-sm text-wn-muted">{reminder.message}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-wn-text">{reminder.title}</p>
+                      <p className="mt-1 text-sm text-wn-muted">{reminder.message}</p>
+                    </div>
+                    {Number(reminder.amount) > 0 ? (
+                      <span className="shrink-0 text-sm font-semibold text-wn-success">
+                        {formatCurrency(reminder.amount)}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="pill-chip">{reminder.type}</span>
+                    <span className="pill-chip">{reminder.dueDate}</span>
+                  </div>
                 </div>
               ))
             ) : (
