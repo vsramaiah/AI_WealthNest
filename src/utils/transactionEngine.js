@@ -22,6 +22,10 @@ function cloneRawData(rawData) {
   return JSON.parse(JSON.stringify(rawData ?? {}))
 }
 
+function hasStoredTransaction(id) {
+  return loadData().transactions.some((txn) => txn.id === id)
+}
+
 export function calculateTransactionByCategory(category, rawData) {
   switch (category) {
     case stockCategory:
@@ -53,6 +57,10 @@ export function addInvestmentTransaction(category, rawData, overrides = {}) {
 }
 
 export function editInvestmentTransaction(id, category, rawData, overrides = {}) {
+  if (hasStoredTransaction(id)) {
+    return updateTransaction(id, buildTransactionRecord(category, rawData, overrides))
+  }
+
   if (isOtherInvestmentMasterCategory(category) && !overrides.forceTransaction) {
     return updateOtherInvestment(category, id, rawData)
   }
@@ -61,6 +69,10 @@ export function editInvestmentTransaction(id, category, rawData, overrides = {})
 }
 
 export function removeInvestmentTransaction(id, category) {
+  if (hasStoredTransaction(id)) {
+    return deleteTransaction(id)
+  }
+
   if (category && isOtherInvestmentMasterCategory(category)) {
     return deleteOtherInvestment(category, id)
   }

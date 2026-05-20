@@ -67,6 +67,14 @@ function buildAllocationGradient(groups) {
   return `conic-gradient(${segments.join(', ')})`
 }
 
+function getUpcomingDueSummary(reminders) {
+  if (!reminders.length) {
+    return 'No upcoming due dates'
+  }
+
+  return reminders[0].dueDate
+}
+
 export default function Home() {
   const overview = useMemo(() => getPortfolioOverview(), [])
   const [settings, setSettings] = useState(() => loadAppSettings())
@@ -153,7 +161,7 @@ export default function Home() {
 
           <article className="mt-5 overflow-hidden rounded-[28px] border border-wn-border bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-wn-card-strong)_92%,white_8%),color-mix(in_srgb,var(--color-wn-card)_96%,var(--color-wn-bg)_4%))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <p className="metric-label">Portfolio Value</p>
                 <p className="mt-3 text-[2.35rem] font-semibold tracking-tight text-wn-text">
                   {showNetWorth ? formatCurrency(overview.totalNetWorth) : '\u20B9x,xxx'}
@@ -164,7 +172,7 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="flex h-24 w-24 items-end justify-end">
+              <div className="flex shrink-0 items-end justify-end">
                 <svg viewBox="0 0 96 72" className="h-20 w-20 text-wn-success" aria-hidden="true" fill="none">
                   <path d="M8 58L24 46L38 60L56 28L72 34L88 12" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
                   <circle cx="88" cy="12" r="5" fill="currentColor" />
@@ -181,8 +189,11 @@ export default function Home() {
               </p>
             </div>
             <div className="rounded-[24px] border border-wn-border bg-white/[0.04] p-4">
-              <p className="metric-label">Active Reminders</p>
-              <p className="mt-2 text-xl font-semibold text-wn-text">{reminders.length}</p>
+              <p className="metric-label">Next Due Date</p>
+              <p className="mt-2 text-base font-semibold text-wn-text">
+                {getUpcomingDueSummary(reminders)}
+              </p>
+              <p className="mt-1 text-xs text-wn-muted">{reminders.length} active reminders</p>
             </div>
           </div>
         </section>
@@ -232,8 +243,13 @@ export default function Home() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-4 px-1">
-            <p className="section-title">Category Cards</p>
-            <span className="text-sm text-wn-muted">Grouped by investment class</span>
+            <div>
+              <p className="section-title">Category Cards</p>
+              <p className="mt-1 text-sm text-wn-muted">Grouped by investment class</p>
+            </div>
+            <span className="rounded-full border border-wn-border bg-white/[0.04] px-3 py-1 text-xs font-medium text-wn-muted">
+              {overview.groupedAllocation.length} groups
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -266,8 +282,9 @@ export default function Home() {
                 Upcoming due dates generated from your saved records.
               </p>
             </div>
-            <div className="icon-badge h-10 w-10 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-400">
-              <Layers3 size={18} strokeWidth={2.2} />
+            <div className="text-right">
+              <p className="metric-label">Preview</p>
+              <p className="mt-1 text-sm font-semibold text-wn-text">{reminders.length} items</p>
             </div>
           </div>
 

@@ -219,33 +219,33 @@ function TransactionRow({ txn }) {
     <button
       type="button"
       onClick={() => navigate(`/transactions/${txn.id}`)}
-      className="block w-full rounded-[22px] bg-wn-card px-3 py-3 text-left"
+      className="block w-full rounded-[22px] bg-wn-card px-3 py-3.5 text-left hover:bg-white/[0.03]"
     >
-        <div className="flex items-center gap-3">
-          <div className="w-10 shrink-0 text-center">
-            <p className="text-base font-semibold leading-none text-wn-text">{formatDay(txn.date)}</p>
-            <p className="mt-1 text-xs text-wn-muted">{formatShortMonth(txn.date)}</p>
-          </div>
-
-          <CategoryIconBadge
-            categoryId={txn.category}
-            size={16}
-            className="h-8 w-8 shrink-0"
-          />
-
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-wn-text">
-              {txn.type} - {formatTxnTitle(txn)}
-            </p>
-            <p className="mt-1 truncate text-xs text-wn-muted">{formatTxnMeta(txn)}</p>
-          </div>
-
-          <div className="shrink-0 text-right">
-            <p className={`text-sm font-semibold ${toneForType(txn.type)}`}>
-              {formatCurrency(txn.amount)}
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-10 shrink-0 text-center">
+          <p className="text-base font-semibold leading-none text-wn-text">{formatDay(txn.date)}</p>
+          <p className="mt-1 text-xs text-wn-muted">{formatShortMonth(txn.date)}</p>
         </div>
+
+        <CategoryIconBadge
+          categoryId={txn.category}
+          size={16}
+          className="h-8 w-8 shrink-0"
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-wn-text">
+            {txn.type} - {formatTxnTitle(txn)}
+          </p>
+          <p className="mt-1 truncate text-xs text-wn-muted">{formatTxnMeta(txn)}</p>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className={`text-sm font-semibold ${toneForType(txn.type)}`}>
+            {formatCurrency(txn.amount)}
+          </p>
+        </div>
+      </div>
     </button>
   )
 }
@@ -427,23 +427,27 @@ export default function Transactions() {
     <PageShell>
       <div className="space-y-4">
         <article className="glass-card p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-[22px] border border-white/6 bg-white/[0.03] p-4">
               <p className="text-sm text-wn-muted">Total Transactions</p>
               <p className="mt-2 text-2xl font-semibold text-wn-text">
                 {filteredTransactions.length}
               </p>
             </div>
-            <div className="text-right">
+            <div className="rounded-[22px] border border-white/6 bg-white/[0.03] p-4 text-right">
               <p className="text-sm text-wn-muted">Total Amount</p>
               <p className="mt-2 text-2xl font-semibold text-wn-text">
                 {formatCurrency(totalAmount)}
               </p>
             </div>
           </div>
-          <p className="mt-4 text-sm text-wn-muted">{dateRangeLabel}</p>
+
+          <div className="mt-4 rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3">
+            <p className="text-sm text-wn-muted">{dateRangeLabel}</p>
+          </div>
+
           {combinedFilterLabel ? (
-            <p className="mt-2 text-sm text-wn-muted">
+            <p className="mt-3 text-sm text-wn-muted">
               Active filters: {combinedFilterLabel}
             </p>
           ) : null}
@@ -500,7 +504,7 @@ export default function Transactions() {
                   <span className="text-sm text-wn-text">{draftDateRangeLabel}</span>
                   <CalendarDays size={17} className="text-wn-muted" />
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <input
                     type="date"
                     value={draftFilters.dateFrom}
@@ -577,7 +581,7 @@ export default function Transactions() {
                 </select>
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -614,7 +618,12 @@ export default function Transactions() {
         <div className="space-y-4">
           {Object.entries(groupedTransactions).map(([monthLabel, items]) => (
             <section key={monthLabel} className="glass-card p-4">
-              <p className="text-lg font-semibold text-wn-text">{monthLabel}</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-lg font-semibold text-wn-text">{monthLabel}</p>
+                <span className="text-xs uppercase tracking-[0.18em] text-wn-muted">
+                  {items.length} {items.length === 1 ? 'entry' : 'entries'}
+                </span>
+              </div>
 
               <div className="mt-4 overflow-hidden rounded-[24px] border border-white/6 bg-white/[0.03]">
                 {items.map((txn, index) => (

@@ -2,7 +2,7 @@
 
 :root {
   color-scheme: dark;
-  font-family: "Sora", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at 10% 0%, rgba(37, 99, 235, 0.22), transparent 28%),
     radial-gradient(circle at 90% 0%, rgba(16, 185, 129, 0.16), transparent 24%),
@@ -30,6 +30,15 @@ body {
   margin: 0;
   min-height: 100vh;
   background-color: #0b0f1a;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Sora", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 :root[data-theme='light'] body {
@@ -78,13 +87,16 @@ a:active {
   --color-wn-bg-soft: #111827;
   --color-wn-card: #121826;
   --color-wn-card-strong: #192235;
-  --color-wn-border: rgba(148, 163, 184, 0.14);
+  --color-wn-border: rgba(255, 255, 255, 0.08);
+  --color-wn-border-strong: rgba(255, 255, 255, 0.14);
   --color-wn-muted: #8fa1be;
   --color-wn-text: #edf4ff;
   --color-wn-success: #22c55e;
   --color-wn-danger: #fb7185;
   --color-wn-warning: #fbbf24;
-  --color-wn-accent: #45e37c;
+  --color-wn-accent: #22c55e;
+  --color-wn-accent-hover: #2dd36f;
+  --color-wn-accent-glow: rgba(34, 197, 94, 0.35);
   --color-wn-accent-strong: #2dd36f;
 }
 
@@ -94,12 +106,15 @@ a:active {
   --color-wn-card: #ffffff;
   --color-wn-card-strong: #f8fbff;
   --color-wn-border: rgba(15, 23, 42, 0.08);
+  --color-wn-border-strong: rgba(15, 23, 42, 0.12);
   --color-wn-muted: #627086;
   --color-wn-text: #122033;
   --color-wn-success: #16a34a;
   --color-wn-danger: #ef4444;
   --color-wn-warning: #d97706;
   --color-wn-accent: #22c55e;
+  --color-wn-accent-hover: #2dd36f;
+  --color-wn-accent-glow: rgba(34, 197, 94, 0.35);
   --color-wn-accent-strong: #16a34a;
 }
 
@@ -131,6 +146,7 @@ a:active {
 
 @utility section-title {
   @apply text-lg font-semibold tracking-tight text-wn-text;
+  font-family: "Sora", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 @utility section-copy {
@@ -139,6 +155,7 @@ a:active {
 
 @utility screen-title {
   @apply text-[2rem] font-semibold tracking-tight text-wn-text;
+  font-family: "Sora", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 @utility eyebrow {

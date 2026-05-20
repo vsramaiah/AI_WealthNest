@@ -48,6 +48,134 @@ function isGrossChargesTotalCategory(category) {
   return isStockCategory(category) || isCryptoCategory(category)
 }
 
+function MetricCard({ label, value, toneClassName = 'text-wn-text' }) {
+  return (
+    <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3.5">
+      <p className="metric-label">{label}</p>
+      <p className={`mt-2 text-sm font-semibold ${toneClassName}`}>{value}</p>
+    </div>
+  )
+}
+
+function getSummaryValueLabel(category) {
+  if (isGrossChargesTotalCategory(category)) {
+    return 'Gross Value'
+  }
+
+  if (isGoldSilverCategory(category) || isRealEstateCategory(category) || isMutualFundCategory(category)) {
+    return 'Invested'
+  }
+
+  if (isInsuranceCategory(category)) {
+    return 'Sum Assured'
+  }
+
+  if (isFixedIncomeCategory(category)) {
+    return 'Total'
+  }
+
+  return 'Value'
+}
+
+function getSecondaryLabel(category) {
+  if (isGrossChargesTotalCategory(category)) {
+    return 'Charges'
+  }
+
+  if (isGoldSilverCategory(category)) {
+    return 'Total Grams'
+  }
+
+  if (isMutualFundCategory(category)) {
+    return 'Total Units'
+  }
+
+  if (isInsuranceCategory(category)) {
+    return 'Premium Paid'
+  }
+
+  if (isFixedIncomeCategory(category)) {
+    return 'Deposit'
+  }
+
+  return 'Invested'
+}
+
+function getTertiaryLabel(category) {
+  if (isGrossChargesTotalCategory(category)) {
+    return 'Invested'
+  }
+
+  if (isGoldSilverCategory(category)) {
+    return 'Charges'
+  }
+
+  if (isFixedIncomeCategory(category)) {
+    return 'Interest'
+  }
+
+  return 'P/L'
+}
+
+function getGridClass(category) {
+  if (isRealEstateCategory(category)) {
+    return 'grid-cols-1'
+  }
+
+  if (isInsuranceCategory(category) || isMutualFundCategory(category)) {
+    return 'grid-cols-2'
+  }
+
+  return 'grid-cols-3'
+}
+
+function getDisplayMetrics(category, source) {
+  const primary = {
+    label: getSummaryValueLabel(category),
+    value: formatCurrency(
+      isGrossChargesTotalCategory(category) ? source.grossValue ?? 0 : source.value ?? 0,
+    ),
+  }
+
+  const metrics = [primary]
+
+  if (!isRealEstateCategory(category)) {
+    const secondaryValue = isMutualFundCategory(category)
+      ? Number(source.totalUnits ?? 0).toFixed(4)
+      : isGoldSilverCategory(category)
+        ? `${Number(source.totalGrams ?? 0).toFixed(4)} g`
+        : formatCurrency(
+            isGrossChargesTotalCategory(category) ? source.charges ?? 0 : source.invested ?? 0,
+          )
+
+    metrics.push({
+      label: getSecondaryLabel(category),
+      value: secondaryValue,
+    })
+  }
+
+  if (!isInsuranceCategory(category) && !isMutualFundCategory(category) && !isRealEstateCategory(category)) {
+    const tertiaryValue = isGrossChargesTotalCategory(category)
+      ? source.invested ?? 0
+      : isGoldSilverCategory(category)
+        ? source.charges ?? 0
+        : isFixedIncomeCategory(category)
+          ? (source.value ?? 0) - (source.invested ?? 0)
+          : source.profitLoss ?? 0
+
+    metrics.push({
+      label: getTertiaryLabel(category),
+      value: formatCurrency(tertiaryValue),
+      toneClassName:
+        isGrossChargesTotalCategory(category) || isGoldSilverCategory(category)
+          ? 'text-wn-text'
+          : profitTone(tertiaryValue),
+    })
+  }
+
+  return metrics
+}
+
 export default function AssetDetails() {
   const { categoryId } = useParams()
   const navigate = useNavigate()
@@ -65,224 +193,93 @@ export default function AssetDetails() {
     )
   }
 
+  const summaryMetrics = getDisplayMetrics(category, category)
+  const populatedCount = category.details.filter((item) => Number(item.value ?? item.invested ?? 0) > 0).length
+
   return (
     <PageShell
       eyebrow={category.group}
       title={category.label}
-      description="A category-level detail view with summary cards and individual saved records."
+      description="Review the category summary and open any saved record to jump into its transaction history."
       backTo="/portfolio"
       backLabel="Back to Portfolio"
     >
       <div className="space-y-4">
-        <article className="glass-card p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
+        <article className="glass-card p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
               <p className="metric-label">Category Summary</p>
-              <p className="mt-2 text-2xl font-semibold text-wn-text">
+              <p className="mt-2 text-2xl font-semibold tracking-tight text-wn-text sm:text-[2rem]">
                 {formatCurrency(category.value)}
               </p>
+              <p className="mt-2 text-sm text-wn-muted">
+                {category.label} currently includes {category.details.length}{' '}
+                {category.details.length === 1 ? 'record' : 'records'}.
+              </p>
             </div>
-            <ArrowUpRight className="text-wn-muted" size={18} />
+
+            <div className="rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3 text-right">
+              <p className="metric-label">Active Records</p>
+              <p className="mt-2 text-sm font-semibold text-wn-text">{populatedCount}</p>
+            </div>
           </div>
 
-          <div
-            className={`mt-5 grid gap-3 ${
-              isRealEstateCategory(category)
-                ? 'grid-cols-1'
-                : isInsuranceCategory(category) || isMutualFundCategory(category)
-                  ? 'grid-cols-2'
-                  : 'grid-cols-3'
-            }`}
-          >
-            <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-              <p className="metric-label">
-                {isGrossChargesTotalCategory(category)
-                  ? 'Gross Value'
-                  : isGoldSilverCategory(category)
-                    ? 'Invested'
-                  : isRealEstateCategory(category)
-                    ? 'Invested'
-                  : isMutualFundCategory(category)
-                    ? 'Invested'
-                  : isInsuranceCategory(category)
-                    ? 'Sum Assured'
-                    : isFixedIncomeCategory(category)
-                      ? 'Total'
-                      : 'Value'}
-              </p>
-              <p className="mt-2 text-sm font-semibold text-wn-text">
-                {formatCurrency(
-                  isGrossChargesTotalCategory(category) ? category.grossValue ?? 0 : category.value,
-                )}
-              </p>
-            </div>
-            {isRealEstateCategory(category) ? null : (
-              <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                <p className="metric-label">
-                  {isGrossChargesTotalCategory(category)
-                    ? 'Charges'
-                    : isGoldSilverCategory(category)
-                      ? 'Total Grams'
-                    : isMutualFundCategory(category)
-                      ? 'Total Units'
-                    : isInsuranceCategory(category)
-                      ? 'Premium Paid'
-                      : isFixedIncomeCategory(category)
-                        ? 'Deposit'
-                        : 'Invested'}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-wn-text">
-                  {isMutualFundCategory(category)
-                    ? Number(category.totalUnits ?? 0).toFixed(4)
-                    : isGoldSilverCategory(category)
-                      ? `${Number(category.totalGrams ?? 0).toFixed(4)} g`
-                      : formatCurrency(
-                          isGrossChargesTotalCategory(category)
-                            ? category.charges ?? 0
-                            : category.invested,
-                        )}
-                </p>
-              </div>
-            )}
-            {isInsuranceCategory(category) || isMutualFundCategory(category) || isRealEstateCategory(category) ? null : (
-              <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                <p className="metric-label">
-                  {isGrossChargesTotalCategory(category)
-                    ? 'Invested'
-                    : isGoldSilverCategory(category)
-                      ? 'Charges'
-                      : isFixedIncomeCategory(category)
-                        ? 'Interest'
-                        : 'P/L'}
-                </p>
-                <p className={`mt-2 text-sm font-semibold ${isGrossChargesTotalCategory(category) || isGoldSilverCategory(category) ? 'text-wn-text' : profitTone(category.profitLoss)}`}>
-                  {formatCurrency(
-                    isGrossChargesTotalCategory(category)
-                      ? category.invested
-                      : isGoldSilverCategory(category)
-                        ? category.charges
-                        : category.profitLoss,
-                  )}
-                </p>
-              </div>
-            )}
+          <div className={`mt-5 grid gap-3 ${getGridClass(category)}`}>
+            {summaryMetrics.map((metric) => (
+              <MetricCard
+                key={metric.label}
+                label={metric.label}
+                value={metric.value}
+                toneClassName={metric.toneClassName}
+              />
+            ))}
           </div>
         </article>
 
         {category.details.length > 0 ? (
-          category.details.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() =>
-                navigate('/transactions', {
-                  state: {
-                    recordFilter: {
-                      category: category.id,
-                      itemId: item.id,
-                      title: item.title,
-                    },
-                  },
-                })
-              }
-              className="glass-card block w-full p-5 text-left"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-base font-semibold text-wn-text">{item.title}</p>
-                  <p className="mt-1 text-sm text-wn-muted">{item.subtitle || 'Stored entry'}</p>
-                </div>
-                <ArrowUpRight className="text-wn-muted" size={18} />
-              </div>
+          category.details.map((item) => {
+            const itemMetrics = getDisplayMetrics(category, item)
 
-              <div
-                className={`mt-4 grid gap-3 ${
-                  isRealEstateCategory(category)
-                    ? 'grid-cols-1'
-                    : 
-                  isInsuranceCategory(category)
-                    || isMutualFundCategory(category)
-                    ? 'grid-cols-2'
-                    : isFixedIncomeCategory(category)
-                      ? 'grid-cols-3'
-                      : 'grid-cols-2'
-                }`}
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() =>
+                  navigate('/transactions', {
+                    state: {
+                      recordFilter: {
+                        category: category.id,
+                        itemId: item.id,
+                        title: item.title,
+                      },
+                    },
+                  })
+                }
+                className="glass-card block w-full p-5 text-left transition-transform duration-200 hover:-translate-y-0.5"
               >
-                <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                  <p className="metric-label">
-                    {isGrossChargesTotalCategory(category)
-                      ? 'Gross Value'
-                      : isGoldSilverCategory(category)
-                        ? 'Invested'
-                      : isRealEstateCategory(category)
-                        ? 'Invested'
-                      : isMutualFundCategory(category)
-                        ? 'Invested'
-                      : isInsuranceCategory(category)
-                        ? 'Sum Assured'
-                        : isFixedIncomeCategory(category)
-                          ? 'Total'
-                          : 'Value'}
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-wn-text">
-                    {formatCurrency(
-                      isGrossChargesTotalCategory(category) ? item.grossValue ?? 0 : item.value ?? 0,
-                    )}
-                  </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-wn-text">{item.title}</p>
+                    <p className="mt-1 text-sm text-wn-muted">{item.subtitle || 'Stored entry'}</p>
+                  </div>
+                  <div className="shrink-0 rounded-2xl border border-white/6 bg-white/[0.03] p-2 text-wn-muted">
+                    <ArrowUpRight size={18} />
+                  </div>
                 </div>
-                {isRealEstateCategory(category) ? null : (
-                  <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                    <p className="metric-label">
-                      {isGrossChargesTotalCategory(category)
-                        ? 'Charges'
-                        : isGoldSilverCategory(category)
-                          ? 'Total Grams'
-                        : isMutualFundCategory(category)
-                          ? 'Total Units'
-                        : isInsuranceCategory(category)
-                          ? 'Premium Paid'
-                          : isFixedIncomeCategory(category)
-                            ? 'Deposit'
-                            : 'Invested'}
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-wn-text">
-                      {isMutualFundCategory(category)
-                        ? Number(item.totalUnits ?? 0).toFixed(4)
-                        : isGoldSilverCategory(category)
-                          ? `${Number(item.totalGrams ?? 0).toFixed(4)} g`
-                          : formatCurrency(
-                              isGrossChargesTotalCategory(category)
-                                ? item.charges ?? 0
-                                : item.invested ?? 0,
-                            )}
-                    </p>
-                  </div>
-                )}
-                {isGrossChargesTotalCategory(category) || isGoldSilverCategory(category) ? (
-                  <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                    <p className="metric-label">
-                      {isGrossChargesTotalCategory(category) ? 'Invested' : 'Charges'}
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-wn-text">
-                      {formatCurrency(
-                        isGrossChargesTotalCategory(category)
-                          ? item.invested ?? 0
-                          : item.charges ?? 0,
-                      )}
-                    </p>
-                  </div>
-                ) : null}
-                {isFixedIncomeCategory(category) && !isInsuranceCategory(category) ? (
-                  <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                    <p className="metric-label">Interest</p>
-                    <p className={`mt-2 text-sm font-semibold ${profitTone((item.value ?? 0) - (item.invested ?? 0))}`}>
-                      {formatCurrency((item.value ?? 0) - (item.invested ?? 0))}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            </button>
-          ))
+
+                <div className={`mt-4 grid gap-3 ${getGridClass(category)}`}>
+                  {itemMetrics.map((metric) => (
+                    <MetricCard
+                      key={`${item.id}-${metric.label}`}
+                      label={metric.label}
+                      value={metric.value}
+                      toneClassName={metric.toneClassName}
+                    />
+                  ))}
+                </div>
+              </button>
+            )
+          })
         ) : (
           <article className="glass-card p-5">
             <p className="section-title">No asset records yet</p>

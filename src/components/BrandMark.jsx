@@ -58,7 +58,7 @@ export default function BrandMark({
       </div>
 
       <div className="min-w-0">
-        <p className={`font-semibold uppercase ${minimal ? 'text-[0.96rem] tracking-[0.42em] text-emerald-300' : 'text-[10px] tracking-[0.34em] text-emerald-300/88'}`}>
+        <p className={`font-['Sora'] font-semibold uppercase ${minimal ? 'text-[0.96rem] tracking-[0.42em] text-emerald-300' : 'text-[10px] tracking-[0.34em] text-emerald-300/88'}`}>
           WEALTHNEST
         </p>
         {minimal ? (
@@ -67,7 +67,7 @@ export default function BrandMark({
           </p>
         ) : null}
         {!minimal ? (
-          <p className={`truncate font-semibold tracking-tight text-wn-text ${compact ? 'text-base' : 'text-lg'}`}>
+          <p className={`truncate font-['Sora'] font-semibold tracking-tight text-wn-text ${compact ? 'text-base' : 'text-lg'}`}>
             Personal wealth tracking with long-term clarity.
           </p>
         ) : null}

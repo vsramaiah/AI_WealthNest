@@ -62,6 +62,15 @@ function isRealEstateCategory(category) {
   return category.id === 'realEstate'
 }
 
+function MetricCard({ label, value, toneClassName = 'text-wn-text' }) {
+  return (
+    <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
+      <p className="metric-label">{label}</p>
+      <p className={`mt-2 text-sm font-semibold ${toneClassName}`}>{value}</p>
+    </div>
+  )
+}
+
 export default function Portfolio() {
   const overview = useMemo(() => getPortfolioOverview(), [])
   const location = useLocation()
@@ -83,13 +92,21 @@ export default function Portfolio() {
     <PageShell>
       <div className="space-y-4">
         <article className="glass-card p-5">
-          <p className="metric-label">Total Value</p>
-          <p className="mt-3 text-[2.15rem] font-semibold tracking-tight text-wn-text">
-            {formatCurrency(overview.totalNetWorth)}
-          </p>
-          <p className="mt-2 text-sm font-medium text-emerald-400">
-            {overview.groupedAllocation.length} asset groups tracked
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="metric-label">Total Value</p>
+              <p className="mt-3 text-[2.15rem] font-semibold tracking-tight text-wn-text">
+                {formatCurrency(overview.totalNetWorth)}
+              </p>
+              <p className="mt-2 text-sm font-medium text-emerald-400">
+                {overview.groupedAllocation.length} asset groups tracked
+              </p>
+            </div>
+            <div className="rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3 text-right">
+              <p className="metric-label">Visible Group</p>
+              <p className="mt-2 text-sm font-semibold text-wn-text">{resolvedGroup}</p>
+            </div>
+          </div>
 
           <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
             {groupOptions.map((group) => (
@@ -125,9 +142,14 @@ export default function Portfolio() {
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-wn-text">
-                    {formatCurrency(group.value)}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold text-wn-text">
+                      {formatCurrency(group.value)}
+                    </span>
+                    <p className="mt-1 text-xs text-wn-muted">
+                      {group.categories.length === 1 ? '1 category' : `${group.categories.length} categories`}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -157,32 +179,28 @@ export default function Portfolio() {
                               : 'grid-cols-3'
                         }`}
                       >
-                        <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                          <p className="metric-label">
-                            {isStockCategory(category)
-                              || isCryptoCategory(category)
+                        <MetricCard
+                          label={
+                            isStockCategory(category) || isCryptoCategory(category)
                               ? 'Invested'
                               : isGoldSilverCategory(category)
                                 ? 'Invested'
-                              : isRealEstateCategory(category)
-                                ? 'Invested'
-                              : isMutualFundCategory(category)
-                                ? 'Invested'
-                              : isInsuranceCategory(category)
-                                ? 'Sum Assured'
-                                : isFixedIncomeCategory(category)
-                                  ? 'Total'
-                                  : 'Value'}
-                          </p>
-                          <p className="mt-2 text-sm font-semibold text-wn-text">
-                            {formatCurrency(category.value)}
-                          </p>
-                        </div>
+                                : isRealEstateCategory(category)
+                                  ? 'Invested'
+                                  : isMutualFundCategory(category)
+                                    ? 'Invested'
+                                    : isInsuranceCategory(category)
+                                      ? 'Sum Assured'
+                                      : isFixedIncomeCategory(category)
+                                        ? 'Total'
+                                        : 'Value'
+                          }
+                          value={formatCurrency(category.value)}
+                        />
                         {isRealEstateCategory(category) ? null : (
-                          <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                            <p className="metric-label">
-                              {isStockCategory(category)
-                                || isCryptoCategory(category)
+                          <MetricCard
+                            label={
+                              isStockCategory(category) || isCryptoCategory(category)
                                 ? 'Gross Value'
                                 : isGoldSilverCategory(category)
                                   ? 'Total Grams'
@@ -192,26 +210,41 @@ export default function Portfolio() {
                                       ? 'Premium Paid'
                                       : isFixedIncomeCategory(category)
                                         ? 'Deposit'
-                                        : 'Invested'}
-                            </p>
-                            <p className="mt-2 text-sm font-semibold text-wn-text">
-                              {isMutualFundCategory(category)
+                                        : 'Invested'
+                            }
+                            value={
+                              isMutualFundCategory(category)
                                 ? Number(category.totalUnits ?? 0).toFixed(4)
                                 : isGoldSilverCategory(category)
                                   ? `${Number(category.totalGrams ?? 0).toFixed(4)} g`
-                                  : formatCurrency(isStockCategory(category) || isCryptoCategory(category) ? category.grossValue : category.invested)}
-                            </p>
-                          </div>
+                                  : formatCurrency(
+                                      isStockCategory(category) || isCryptoCategory(category)
+                                        ? category.grossValue
+                                        : category.invested,
+                                    )
+                            }
+                          />
                         )}
                         {isInsuranceCategory(category) || isMutualFundCategory(category) || isRealEstateCategory(category) ? null : (
-                          <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
-                            <p className="metric-label">
-                              {isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? 'Charges' : isFixedIncomeCategory(category) ? 'Interest' : 'P/L'}
-                            </p>
-                            <p className={`mt-2 text-sm font-semibold ${isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? 'text-wn-text' : profitTone(category.profitLoss)}`}>
-                              {formatCurrency(isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category) ? category.charges : category.profitLoss)}
-                            </p>
-                          </div>
+                          <MetricCard
+                            label={
+                              isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category)
+                                ? 'Charges'
+                                : isFixedIncomeCategory(category)
+                                  ? 'Interest'
+                                  : 'P/L'
+                            }
+                            value={formatCurrency(
+                              isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category)
+                                ? category.charges
+                                : category.profitLoss,
+                            )}
+                            toneClassName={
+                              isStockCategory(category) || isCryptoCategory(category) || isGoldSilverCategory(category)
+                                ? 'text-wn-text'
+                                : profitTone(category.profitLoss)
+                            }
+                          />
                         )}
                       </div>
                     </Link>
