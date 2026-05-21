@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "io.github.vsramaiah.twa",
-        "sha256_cert_fingerprints": ["EE:09:5A:7F:40:98:E3:98:99:01:03:6F:88:4A:6E:8D:A2:7D:B3:B7:40:E0:35:42:4F:5A:09:CF:DD:A1:95:19"]
-      }
-    }]
