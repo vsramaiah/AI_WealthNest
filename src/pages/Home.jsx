@@ -160,24 +160,20 @@ export default function Home() {
           </div>
 
           <article className="mt-5 overflow-hidden rounded-[28px] border border-wn-border bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-wn-card-strong)_92%,white_8%),color-mix(in_srgb,var(--color-wn-card)_96%,var(--color-wn-bg)_4%))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="metric-label">Portfolio Value</p>
-                <p className="mt-3 text-[2.35rem] font-semibold tracking-tight text-wn-text">
-                  {showNetWorth ? formatCurrency(overview.totalNetWorth) : '\u20B9x,xxx'}
-                </p>
-                <p className="mt-3 flex items-center gap-2 text-sm font-medium text-wn-success">
-                  <TrendingUp size={16} strokeWidth={2.2} />
-                  {overview.groupedAllocation.length} asset groups tracked
-                </p>
-              </div>
+            <p className="metric-label">Portfolio Value</p>
+            <p className="mt-3 max-w-full overflow-hidden text-[clamp(2rem,8vw,2.35rem)] font-semibold leading-tight tracking-tight text-wn-text">
+              {showNetWorth ? formatCurrency(overview.totalNetWorth) : '\u20B9x,xxx'}
+            </p>
+            <div className="mt-4 flex items-end justify-between gap-4">
+              <p className="flex min-w-0 items-center gap-2 text-sm font-medium leading-6 text-wn-success">
+                <TrendingUp size={16} strokeWidth={2.2} />
+                <span>{overview.groupedAllocation.length} asset groups tracked</span>
+              </p>
 
-              <div className="flex shrink-0 items-end justify-end">
-                <svg viewBox="0 0 96 72" className="h-20 w-20 text-wn-success" aria-hidden="true" fill="none">
-                  <path d="M8 58L24 46L38 60L56 28L72 34L88 12" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="88" cy="12" r="5" fill="currentColor" />
-                </svg>
-              </div>
+              <svg viewBox="0 0 96 72" className="h-14 w-16 shrink-0 text-wn-success" aria-hidden="true" fill="none">
+                <path d="M8 58L24 46L38 60L56 28L72 34L88 12" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="88" cy="12" r="5" fill="currentColor" />
+              </svg>
             </div>
           </article>
 
@@ -211,11 +207,11 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-5 grid gap-5 sm:grid-cols-[138px_minmax(0,1fr)]">
-            <div className="mx-auto flex h-[138px] w-[138px] items-center justify-center rounded-full p-4" style={{ background: donutBackground }}>
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-wn-bg text-center shadow-inner">
+          <div className="mt-5 grid gap-5 sm:grid-cols-[150px_minmax(0,1fr)]">
+            <div className="mx-auto flex h-[150px] w-[150px] items-center justify-center rounded-full p-4" style={{ background: donutBackground }}>
+              <div className="flex h-full w-full min-w-0 items-center justify-center rounded-full bg-wn-bg px-3 text-center shadow-inner">
                 <div>
-                  <p className="text-lg font-semibold text-wn-text">
+                  <p className="max-w-[6.25rem] overflow-hidden text-[clamp(0.72rem,3.4vw,0.95rem)] font-semibold leading-tight tracking-tight text-wn-text">
                     {formatCurrency(overview.totalNetWorth)}
                   </p>
                 </div>
@@ -224,15 +220,15 @@ export default function Home() {
 
             <div className="space-y-3">
               {overview.groupedAllocation.map((group, index) => (
-                <div key={group.group} className="flex items-center justify-between gap-3 rounded-[20px] border border-wn-border bg-white/[0.03] px-4 py-3">
-                  <div className="flex items-center gap-3">
+                <div key={group.group} className="flex items-center justify-between gap-3 rounded-[20px] border border-wn-border bg-white/[0.03] px-3.5 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <span className={`h-3 w-3 rounded-full bg-gradient-to-r ${GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]}`} />
-                    <div>
-                      <p className="text-sm font-medium text-wn-text">{group.group}</p>
-                      <p className="text-xs text-wn-muted">{formatCurrency(group.value)}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-wn-text">{group.group}</p>
+                      <p className="truncate text-xs text-wn-muted">{formatCurrency(group.value)}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-wn-text">
+                  <span className="shrink-0 text-sm font-semibold text-wn-text">
                     {formatPercent(group.allocationPercent)}
                   </span>
                 </div>
