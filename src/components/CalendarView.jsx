@@ -170,12 +170,12 @@ export default function CalendarView() {
               </button>
             </div>
 
-            <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
+            <div className="mt-4 flex-1 overflow-y-auto pr-1">
               {selectedDay.events.map((event) => (
-                <article key={event.id} className="rounded-[22px] border border-white/8 bg-white/[0.04] p-4">
+                <article key={event.id} className="border-b border-wn-border py-3 last:border-b-0">
                   <div className="flex items-center justify-between gap-3">
                     <span
-                      className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${
                         EVENT_STYLES[event.label] ?? EVENT_STYLES.DEPOSIT
                       }`}
                     >

@@ -64,7 +64,7 @@ function isRealEstateCategory(category) {
 
 function MetricCard({ label, value, toneClassName = 'text-wn-text' }) {
   return (
-    <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3">
+    <div className="border-b border-wn-border py-2.5 last:border-b-0">
       <p className="metric-label">{label}</p>
       <p className={`mt-2 text-sm font-semibold ${toneClassName}`}>{value}</p>
     </div>
@@ -102,13 +102,9 @@ export default function Portfolio() {
                 {overview.groupedAllocation.length} asset groups tracked
               </p>
             </div>
-            <div className="rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3 text-right">
-              <p className="metric-label">Visible Group</p>
-              <p className="mt-2 text-sm font-semibold text-wn-text">{resolvedGroup}</p>
-            </div>
           </div>
 
-          <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+          <div className="mt-6 flex gap-3 overflow-x-auto px-1 pb-2 pt-1">
             {groupOptions.map((group) => (
               <button
                 key={group}
@@ -152,12 +148,12 @@ export default function Portfolio() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="overflow-hidden rounded-[24px] border border-wn-border bg-wn-card/90">
                   {group.categories.map((category) => (
                     <Link
                       key={category.id}
                       to={`/portfolio/${category.id}`}
-                      className="glass-card block p-4 hover:bg-white/[0.05]"
+                      className="block border-b border-wn-border p-4 last:border-b-0 hover:bg-white/[0.04]"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3">
@@ -170,15 +166,7 @@ export default function Portfolio() {
                         <ArrowUpRight size={18} className="text-wn-muted" />
                       </div>
 
-                      <div
-                        className={`mt-4 grid gap-3 ${
-                          isRealEstateCategory(category)
-                            ? 'grid-cols-1'
-                            : isInsuranceCategory(category)
-                              ? 'grid-cols-2'
-                              : 'grid-cols-3'
-                        }`}
-                      >
+                      <div className="mt-3 grid grid-cols-3 gap-4">
                         <MetricCard
                           label={
                             isStockCategory(category) || isCryptoCategory(category)

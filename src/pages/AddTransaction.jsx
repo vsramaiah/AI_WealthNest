@@ -99,18 +99,18 @@ function RecordCard({ category, record, meta, onDelete, onEdit, onToggleStatus, 
         <CategoryIconBadge categoryId={category} size={16} className="h-9 w-9 shrink-0" />
       </div>
 
-      <div className={`mt-3 grid gap-2 ${hasDueDate ? 'grid-cols-3' : 'grid-cols-2'}`}>
-        <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
+      <div className={`mt-3 grid gap-3 border-y border-wn-border py-2.5 ${hasDueDate ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <div>
           <p className="metric-label">Amount</p>
           <p className="mt-1.5 text-xs font-semibold text-wn-text">{formatCurrency(meta.amount)}</p>
         </div>
         {hasDueDate ? (
-          <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
+          <div>
             <p className="metric-label">Due Date</p>
             <p className="mt-1.5 text-xs font-semibold text-wn-text">{meta.dueDate}</p>
           </div>
         ) : null}
-        <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
+        <div>
           <p className="metric-label">Status</p>
           <p className={`mt-1.5 text-xs font-semibold ${meta.status === 'ACTIVE' ? 'text-emerald-300' : 'text-amber-300'}`}>
             {meta.status}
@@ -596,18 +596,18 @@ export default function AddTransaction() {
                             <CategoryIconBadge categoryId={slaveCategory} size={16} className="h-9 w-9 shrink-0" />
                           </div>
 
-                          <div className={`mt-3 grid gap-2 ${hasDueDate ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                            <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
+                          <div className={`mt-3 grid gap-3 border-t border-wn-border pt-2.5 ${hasDueDate ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                            <div>
                               <p className="metric-label">Amount</p>
                               <p className="mt-1.5 text-xs font-semibold text-wn-text">{formatCurrency(meta.amount)}</p>
                             </div>
                             {hasDueDate ? (
-                              <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
+                              <div>
                                 <p className="metric-label">Due Date</p>
                                 <p className="mt-1.5 text-xs font-semibold text-wn-text">{meta.dueDate}</p>
                               </div>
                             ) : null}
-                            <div className="rounded-[18px] border border-white/6 bg-white/[0.03] p-2.5">
+                            <div>
                               <p className="metric-label">Status</p>
                               <p className="mt-1.5 text-xs font-semibold text-emerald-300">{meta.status}</p>
                             </div>

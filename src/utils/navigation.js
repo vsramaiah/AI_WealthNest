@@ -1,35 +1,29 @@
-import {
-  AddEntryIcon,
-  ControlsIcon,
-  HomeIcon,
-  LedgerIcon,
-  PortfolioIcon,
-} from '../components/AppIcons'
+import { ChartNoAxesColumn, CirclePlus, House, ReceiptText, SlidersHorizontal } from 'lucide-react'
 
 export const navigationItems = [
   {
     label: 'Home',
     path: '/home',
-    icon: HomeIcon,
+    icon: House,
   },
   {
     label: 'Portfolio',
     path: '/portfolio',
-    icon: PortfolioIcon,
+    icon: ChartNoAxesColumn,
   },
   {
     label: 'Add',
     path: '/add',
-    icon: AddEntryIcon,
+    icon: CirclePlus,
   },
   {
     label: 'Transactions',
     path: '/transactions',
-    icon: LedgerIcon,
+    icon: ReceiptText,
   },
   {
     label: 'Settings',
     path: '/settings',
-    icon: ControlsIcon,
+    icon: SlidersHorizontal,
   },
 ]

@@ -50,7 +50,7 @@ function isGrossChargesTotalCategory(category) {
 
 function MetricCard({ label, value, toneClassName = 'text-wn-text' }) {
   return (
-    <div className="rounded-[20px] border border-white/6 bg-white/[0.03] p-3.5">
+    <div className="border-b border-wn-border py-2.5 last:border-b-0">
       <p className="metric-label">{label}</p>
       <p className={`mt-2 text-sm font-semibold ${toneClassName}`}>{value}</p>
     </div>
@@ -218,13 +218,13 @@ export default function AssetDetails() {
               </p>
             </div>
 
-            <div className="rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3 text-right">
+            <div className="text-right">
               <p className="metric-label">Active Records</p>
               <p className="mt-2 text-sm font-semibold text-wn-text">{populatedCount}</p>
             </div>
           </div>
 
-          <div className={`mt-5 grid gap-3 ${getGridClass(category)}`}>
+          <div className={`mt-4 grid gap-4 ${getGridClass(category)}`}>
             {summaryMetrics.map((metric) => (
               <MetricCard
                 key={metric.label}
@@ -255,19 +255,19 @@ export default function AssetDetails() {
                     },
                   })
                 }
-                className="glass-card block w-full p-5 text-left transition-transform duration-200 hover:-translate-y-0.5"
+                className="glass-card block w-full p-4 text-left transition-transform duration-200 hover:-translate-y-0.5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="truncate text-base font-semibold text-wn-text">{item.title}</p>
                     <p className="mt-1 text-sm text-wn-muted">{item.subtitle || 'Stored entry'}</p>
                   </div>
-                  <div className="shrink-0 rounded-2xl border border-white/6 bg-white/[0.03] p-2 text-wn-muted">
+                  <div className="shrink-0 p-1 text-wn-muted">
                     <ArrowUpRight size={18} />
                   </div>
                 </div>
 
-                <div className={`mt-4 grid gap-3 ${getGridClass(category)}`}>
+                <div className={`mt-3 grid gap-4 ${getGridClass(category)}`}>
                   {itemMetrics.map((metric) => (
                     <MetricCard
                       key={`${item.id}-${metric.label}`}

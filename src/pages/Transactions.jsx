@@ -219,7 +219,7 @@ function TransactionRow({ txn }) {
     <button
       type="button"
       onClick={() => navigate(`/transactions/${txn.id}`)}
-      className="block w-full rounded-[22px] bg-wn-card px-3 py-3.5 text-left hover:bg-white/[0.03]"
+      className="block w-full px-3 py-3 text-left hover:bg-white/[0.03]"
     >
       <div className="flex items-center gap-3">
         <div className="w-10 shrink-0 text-center">
@@ -427,22 +427,22 @@ export default function Transactions() {
     <PageShell>
       <div className="space-y-4">
         <article className="glass-card p-5">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[22px] border border-white/6 bg-white/[0.03] p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="min-w-0">
               <p className="text-sm text-wn-muted">Total Transactions</p>
-              <p className="mt-2 text-2xl font-semibold text-wn-text">
+              <p className="mt-2 truncate text-2xl font-semibold text-wn-text">
                 {filteredTransactions.length}
               </p>
             </div>
-            <div className="rounded-[22px] border border-white/6 bg-white/[0.03] p-4 text-right">
+            <div className="min-w-0 text-right">
               <p className="text-sm text-wn-muted">Total Amount</p>
-              <p className="mt-2 text-2xl font-semibold text-wn-text">
+              <p className="mt-2 max-w-full overflow-hidden whitespace-nowrap text-[clamp(1.05rem,4.8vw,1.5rem)] font-semibold leading-tight text-wn-text">
                 {formatCurrency(totalAmount)}
               </p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3">
+          <div className="mt-4 border-t border-wn-border pt-3">
             <p className="text-sm text-wn-muted">{dateRangeLabel}</p>
           </div>
 
@@ -456,8 +456,8 @@ export default function Transactions() {
           </p>
         </article>
 
-        <div className="flex items-center justify-between gap-3 px-1">
-          <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex items-center justify-between gap-3 px-1 py-1">
+          <div className="flex gap-3 overflow-x-auto px-1 pb-2 pt-1">
             {chipOptions.map((type) => (
               <button
                 key={type.value}
@@ -466,7 +466,7 @@ export default function Transactions() {
                 className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium ${
                   activeType === type.value
                     ? 'bg-wn-accent-strong text-[#04110a]'
-                    : 'border border-white/8 bg-white/[0.04] text-wn-text'
+                    : 'text-wn-muted hover:bg-white/[0.04] hover:text-wn-text'
                 }`}
               >
                 {type.label}
@@ -498,9 +498,9 @@ export default function Transactions() {
             </div>
 
             <div className="mt-4 space-y-4">
-              <div className="rounded-[22px] border border-white/6 bg-white/[0.03] p-4">
+              <div className="border-b border-wn-border pb-4">
                 <p className="text-sm text-wn-muted">Date Range</p>
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                <div className="mt-3 flex items-center justify-between gap-3">
                   <span className="text-sm text-wn-text">{draftDateRangeLabel}</span>
                   <CalendarDays size={17} className="text-wn-muted" />
                 </div>
@@ -617,7 +617,7 @@ export default function Transactions() {
 
         <div className="space-y-4">
           {Object.entries(groupedTransactions).map(([monthLabel, items]) => (
-            <section key={monthLabel} className="glass-card p-4">
+            <section key={monthLabel} className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-lg font-semibold text-wn-text">{monthLabel}</p>
                 <span className="text-xs uppercase tracking-[0.18em] text-wn-muted">
@@ -625,9 +625,9 @@ export default function Transactions() {
                 </span>
               </div>
 
-              <div className="mt-4 overflow-hidden rounded-[24px] border border-white/6 bg-white/[0.03]">
+              <div className="overflow-hidden rounded-[24px] border border-wn-border bg-wn-card/90">
                 {items.map((txn, index) => (
-                  <div key={txn.id} className={index !== items.length - 1 ? 'border-b border-white/6' : ''}>
+                  <div key={txn.id} className={index !== items.length - 1 ? 'border-b border-wn-border' : ''}>
                     <TransactionRow txn={txn} />
                   </div>
                 ))}

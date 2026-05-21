@@ -202,7 +202,7 @@ export default function Home() {
                 Allocation grouped by major investment class.
               </p>
             </div>
-            <Link to="/portfolio" className="pill-chip">
+            <Link to="/portfolio" className="text-sm font-semibold text-wn-success">
               View all
             </Link>
           </div>
@@ -220,7 +220,7 @@ export default function Home() {
 
             <div className="space-y-3">
               {overview.groupedAllocation.map((group, index) => (
-                <div key={group.group} className="flex items-center justify-between gap-3 rounded-[20px] border border-wn-border bg-white/[0.03] px-3.5 py-3">
+                <div key={group.group} className="flex items-center justify-between gap-3 border-b border-wn-border py-2.5 last:border-b-0">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className={`h-3 w-3 rounded-full bg-gradient-to-r ${GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]}`} />
                     <div className="min-w-0">
@@ -243,7 +243,7 @@ export default function Home() {
               <p className="section-title">Category Cards</p>
               <p className="mt-1 text-sm text-wn-muted">Grouped by investment class</p>
             </div>
-            <span className="rounded-full border border-wn-border bg-white/[0.04] px-3 py-1 text-xs font-medium text-wn-muted">
+            <span className="text-xs font-medium uppercase tracking-[0.18em] text-wn-muted">
               {overview.groupedAllocation.length} groups
             </span>
           </div>
@@ -287,7 +287,7 @@ export default function Home() {
           <div className="mt-5 space-y-3">
             {reminders.length > 0 ? (
               reminders.map((reminder) => (
-                <div key={reminder.id} className="rounded-[22px] border border-white/6 bg-white/[0.03] p-4">
+                <div key={reminder.id} className="border-b border-wn-border py-3 last:border-b-0">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-wn-text">{reminder.title}</p>
@@ -300,9 +300,10 @@ export default function Home() {
                     ) : null}
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="pill-chip">{reminder.type}</span>
-                    <span className="pill-chip">{reminder.dueDate}</span>
+                  <div className="mt-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-wn-muted">
+                    <span>{reminder.type}</span>
+                    <span className="h-1 w-1 rounded-full bg-wn-muted/60" />
+                    <span>{reminder.dueDate}</span>
                   </div>
                 </div>
               ))
