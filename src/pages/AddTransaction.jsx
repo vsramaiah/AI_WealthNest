@@ -1,4 +1,4 @@
-import { ChevronRight, ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CategoryIconBadge } from '../components/CategoryVisuals'
 import DynamicForm from '../components/DynamicForm'
@@ -49,17 +49,17 @@ function TabChip({ active, label, onClick }) {
   )
 }
 
-function CategoryCard({ option, onSelect }) {
+function CategoryCard({ option, onSelect, helperText = 'Tap to continue' }) {
   return (
     <button
       type="button"
       onClick={() => onSelect(option.value)}
-      className="glass-card flex min-h-32 flex-col items-start justify-between p-4 text-left hover:bg-white/[0.05]"
+      className="glass-card flex min-h-[92px] items-center gap-3 p-3.5 text-left hover:bg-white/[0.05]"
     >
-      <CategoryIconBadge categoryId={option.value} size={20} />
-      <div>
-        <p className="text-base font-semibold text-wn-text">{option.label}</p>
-        <p className="mt-1 text-sm text-wn-muted">Tap to continue</p>
+      <CategoryIconBadge categoryId={option.value} size={18} className="h-11 w-11 shrink-0" />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-wn-text">{option.label}</p>
+        <p className="mt-1 line-clamp-2 text-xs leading-5 text-wn-muted">{helperText}</p>
       </div>
     </button>
   )
@@ -84,6 +84,16 @@ function ExplainerCard({ title, description, tone = 'emerald' }) {
       </div>
     </article>
   )
+}
+
+function getCategoryHelper(option, mode) {
+  if (mode === 'master') {
+    return 'Reusable account setup'
+  }
+
+  return option.value === 'stocks'
+    ? 'Basket or single trade'
+    : 'Record transaction entry'
 }
 
 function RecordCard({ category, record, meta, onDelete, onEdit, onToggleStatus, statusActionLabel }) {
@@ -373,10 +383,10 @@ export default function AddTransaction() {
     (!requiresMasterSelection(slaveCategory) || Boolean(selectedMaster) || Boolean(editingTransaction))
 
   return (
-    <PageShell>
-      <div className="space-y-4">
-        <div className="sticky top-0 z-10 space-y-3 bg-wn-bg/96 pb-2 pt-1 backdrop-blur-xl">
-          <article className="rounded-[24px] border border-wn-border bg-wn-card/88 p-3 shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
+    <PageShell title="Add" description="Create reusable accounts or record new investment entries.">
+      <div className="space-y-4 pb-24">
+        <div className="sticky top-0 z-10 bg-wn-bg/96 pb-2 pt-1 backdrop-blur-xl">
+          <article className="rounded-[24px] border border-wn-border bg-wn-card/88 p-2 shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
             <div className="flex gap-2 rounded-full border border-wn-border bg-white/[0.03] p-1">
               <TabChip
                 active={activeTab === 'master'}
@@ -403,12 +413,12 @@ export default function AddTransaction() {
               />
             </div>
 
-            <p className="mt-3 px-2 text-sm text-wn-muted">
+            <p className="px-2 pb-1 pt-2 text-xs leading-5 text-wn-muted">
               {activeTab === 'master'
-                ? 'Create and manage reusable account records.'
+                ? 'Accounts are reusable setup records for future entries.'
                 : editingTransaction
                   ? 'Update the selected investment entry.'
-                  : 'Record a new transaction against an account or direct category.'}
+                  : 'Add a transaction against an account or direct category.'}
             </p>
           </article>
         </div>
@@ -419,13 +429,13 @@ export default function AddTransaction() {
               <section className="space-y-4">
                 <article className="glass-card p-4">
                   <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <CategoryIconBadge categoryId={masterCategory} size={21} className="h-12 w-12" />
-                      <div>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <CategoryIconBadge categoryId={masterCategory} size={19} className="h-11 w-11 shrink-0" />
+                      <div className="min-w-0">
                         <p className="text-base font-semibold text-wn-text">
                           {editingMaster ? `Edit ${activeMasterConfig.label}` : `New ${activeMasterConfig.label}`}
                         </p>
-                        <p className="mt-1 text-sm text-wn-muted">
+                        <p className="mt-1 text-xs leading-5 text-wn-muted">
                           {editingMaster
                             ? 'Update account details without removing historical records.'
                             : 'Create an account record for future transaction entries.'}
@@ -433,8 +443,8 @@ export default function AddTransaction() {
                       </div>
                     </div>
 
-                    <button type="button" onClick={resetMasterFlow} className="secondary-button h-10 w-10 rounded-2xl px-0 py-0">
-                      <ChevronRight size={18} />
+                    <button type="button" onClick={resetMasterFlow} className="secondary-button shrink-0 px-3 py-2 text-xs">
+                      Change
                     </button>
                   </div>
                 </article>
@@ -447,7 +457,7 @@ export default function AddTransaction() {
                   isSubmitting={isSavingMaster}
                   showCalculatedSummary={false}
                   title="Account Details"
-                  description="Maintain reusable account information for this category. Transaction totals are not shown here."
+                  description="Save reusable account details once, then use them while adding entries."
                   onSubmit={handleMasterSubmit}
                 />
               </section>
@@ -462,7 +472,12 @@ export default function AddTransaction() {
 
                 <div className="grid grid-cols-2 gap-3">
                   {masterCategoryOptions.map((option) => (
-                    <CategoryCard key={option.value} option={option} onSelect={handleMasterCategorySelect} />
+                    <CategoryCard
+                      key={option.value}
+                      option={option}
+                      helperText={getCategoryHelper(option, 'master')}
+                      onSelect={handleMasterCategorySelect}
+                    />
                   ))}
                 </div>
 
@@ -518,13 +533,13 @@ export default function AddTransaction() {
             {slaveCategory ? (
               <article className="glass-card p-4">
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <CategoryIconBadge categoryId={slaveCategory} size={21} className="h-12 w-12" />
-                    <div>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <CategoryIconBadge categoryId={slaveCategory} size={19} className="h-11 w-11 shrink-0" />
+                    <div className="min-w-0">
                       <p className="text-base font-semibold text-wn-text">
                         {slaveCategoryOptions.find((option) => option.value === slaveCategory)?.label ?? slaveCategory}
                       </p>
-                      <p className="mt-1 text-sm text-wn-muted">
+                      <p className="mt-1 text-xs leading-5 text-wn-muted">
                         {requiresMasterSelection(slaveCategory)
                           ? 'Only active account records are available for selection.'
                           : 'This category supports direct transaction entry without an account link.'}
@@ -532,8 +547,8 @@ export default function AddTransaction() {
                     </div>
                   </div>
 
-                  <button type="button" onClick={resetSlaveFlow} className="secondary-button h-10 w-10 rounded-2xl px-0 py-0">
-                    <ChevronRight size={18} />
+                  <button type="button" onClick={resetSlaveFlow} className="secondary-button shrink-0 px-3 py-2 text-xs">
+                    Change
                   </button>
                 </div>
               </article>
@@ -548,7 +563,12 @@ export default function AddTransaction() {
 
                 <div className="grid grid-cols-2 gap-3">
                   {slaveCategoryOptions.map((option) => (
-                    <CategoryCard key={option.value} option={option} onSelect={handleSlaveCategorySelect} />
+                    <CategoryCard
+                      key={option.value}
+                      option={option}
+                      helperText={getCategoryHelper(option, 'slave')}
+                      onSelect={handleSlaveCategorySelect}
+                    />
                   ))}
                 </div>
 
@@ -629,13 +649,30 @@ export default function AddTransaction() {
 
             {selectedMaster ? (
               <article className="glass-card p-4">
-                <p className="text-sm text-wn-muted">Selected Account</p>
-                <p className="mt-2 text-base font-semibold text-wn-text">
-                  {buildMasterCardMeta(slaveCategory, selectedMaster)?.title}
-                </p>
-                <p className="mt-1 text-sm text-wn-muted">
-                  {buildMasterCardMeta(slaveCategory, selectedMaster)?.identifier}
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-[0.18em] text-wn-muted">Selected Account</p>
+                    <p className="mt-2 truncate text-base font-semibold text-wn-text">
+                      {buildMasterCardMeta(slaveCategory, selectedMaster)?.title}
+                    </p>
+                    <p className="mt-1 text-sm text-wn-muted">
+                      {buildMasterCardMeta(slaveCategory, selectedMaster)?.identifier}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateFlowParams({
+                        tab: 'slave',
+                        slaveCategory,
+                        masterId: '',
+                      })
+                    }
+                    className="secondary-button shrink-0 px-3 py-2 text-xs"
+                  >
+                    Change
+                  </button>
+                </div>
               </article>
             ) : null}
 
@@ -648,7 +685,7 @@ export default function AddTransaction() {
                   submitLabel={editingTransaction ? 'Update Entry' : 'Save Entry'}
                   isSubmitting={isSavingSlave}
                   title="Transaction Details"
-                  description="Record multiple stock line items in one broker trade with combined charges."
+                  description="Add one or more stocks from the same broker trade and keep combined charges together."
                   onSubmit={handleSlaveSubmit}
                 />
               ) : (
@@ -660,7 +697,7 @@ export default function AddTransaction() {
                   submitLabel={editingTransaction ? 'Update Entry' : 'Save Entry'}
                   isSubmitting={isSavingSlave}
                   title="Transaction Details"
-                  description="Fields are generated from the selected category configuration."
+                  description="Enter the details needed for this category. Hidden fields are not required."
                   onSubmit={handleSlaveSubmit}
                 />
               )
@@ -678,16 +715,16 @@ export default function AddTransaction() {
         )}
 
         {saveMessage ? (
-          <article className="glass-card p-5">
-            <p className="section-title">Status</p>
+          <article className="glass-card p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-wn-muted">Status</p>
             <p
               className={[
-                'mt-3 rounded-[20px] border px-4 py-3 text-sm font-medium',
+                'mt-3 rounded-[20px] border px-4 py-3 text-sm font-semibold',
                 saveMessageTone === 'error'
                   ? 'border-rose-500/35 bg-rose-400/14 text-rose-200'
                   : saveMessageTone === 'info'
                     ? 'border-sky-500/35 bg-sky-400/14 text-sky-200'
-                  : 'border-emerald-500/35 bg-emerald-400/16 text-emerald-900',
+                  : 'border-emerald-500/35 bg-emerald-400/16 text-emerald-300',
               ].join(' ')}
             >
               {saveMessage}
@@ -697,7 +734,7 @@ export default function AddTransaction() {
               <button
                 type="button"
                 onClick={() => navigate('/transactions')}
-                className="mt-4 secondary-button"
+                className="mt-4 secondary-button w-full"
               >
                 Back to Transactions
               </button>
@@ -705,7 +742,7 @@ export default function AddTransaction() {
               <button
                 type="button"
                 onClick={handleAddAnotherEntry}
-                className="mt-4 secondary-button"
+                className="mt-4 primary-button w-full"
               >
                 Add Another Entry
               </button>
@@ -714,7 +751,7 @@ export default function AddTransaction() {
         ) : null}
 
         {pendingDeleteMaster ? (
-          <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto bg-black/55 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-10 backdrop-blur sm:items-center sm:pb-6">
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-10 backdrop-blur sm:items-center sm:pb-6">
             <article
               role="dialog"
               aria-modal="true"

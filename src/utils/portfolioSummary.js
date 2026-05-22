@@ -20,6 +20,20 @@ function toNumber(value) {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
+function sortByTitle(left, right) {
+  return String(left.title ?? '').localeCompare(String(right.title ?? ''), 'en-IN', {
+    sensitivity: 'base',
+  })
+}
+
+function sortByInvestedDesc(left, right) {
+  return toNumber(right.invested) - toNumber(left.invested) || sortByTitle(left, right)
+}
+
+function sortByValueDesc(left, right) {
+  return toNumber(right.value) - toNumber(left.value) || sortByTitle(left, right)
+}
+
 function buildSummary(categoryId, summary) {
   const meta = getCategoryMeta(categoryId)
 
@@ -111,7 +125,10 @@ function getStockSummary() {
     },
   )
 
-  return buildSummary('stocks', aggregate)
+  return buildSummary('stocks', {
+    ...aggregate,
+    details: [...aggregate.details].sort(sortByTitle),
+  })
 }
 
 function getMutualFundCategorySummary() {
@@ -137,7 +154,7 @@ function getMutualFundCategorySummary() {
     value: totalInvested,
     invested: totalInvested,
     totalUnits,
-    details,
+    details: [...details].sort(sortByInvestedDesc),
   })
 }
 
@@ -151,6 +168,16 @@ function normalizeTxnType(value) {
   return String(value ?? '').trim().toUpperCase()
 }
 
+function findMasterRecord(data, categoryId, rawData) {
+  const masterId = String(rawData.masterId ?? '').trim()
+
+  if (!masterId) {
+    return null
+  }
+
+  return (data.masters?.[categoryId] ?? []).find((item) => String(item.id) === masterId) ?? null
+}
+
 function buildFixedIncomeTransactionSummary({
   categoryId,
   keyField,
@@ -160,17 +187,23 @@ function buildFixedIncomeTransactionSummary({
   depositTypes = ['DEPOSIT', 'INVEST'],
   interestTypes = ['INTEREST'],
 }) {
-  const grouped = loadData().transactions
+  const data = loadData()
+  const grouped = data.transactions
     .filter((txn) => txn.category === categoryId)
     .reduce((collection, txn) => {
       const rawData = getTransactionRawData(txn)
-      const accountKey = String(rawData[keyField] ?? '').trim() || txn.id
+      const masterRecord = findMasterRecord(data, categoryId, rawData)
+      const accountKey =
+        String(rawData[keyField] ?? '').trim() ||
+        String(masterRecord?.[keyField] ?? '').trim() ||
+        String(rawData.masterId ?? '').trim() ||
+        txn.id
       const amount = toNumber(amountResolver(txn, rawData))
       const txnType = normalizeTxnType(rawData.txnType ?? rawData.transactionType)
       const current = collection[accountKey] ?? {
         id: accountKey,
-        title: rawData[titleField] || 'Stored entry',
-        subtitle: rawData[subtitleField] || '',
+        title: rawData[titleField] || masterRecord?.[titleField] || getCategoryMeta(categoryId).label,
+        subtitle: rawData[subtitleField] || masterRecord?.[subtitleField] || '',
         total: 0,
         deposit: 0,
         interest: 0,
@@ -183,20 +216,22 @@ function buildFixedIncomeTransactionSummary({
       }
 
       current.total = current.deposit + current.interest
-      current.title = rawData[titleField] || current.title
-      current.subtitle = rawData[subtitleField] || current.subtitle
+      current.title = rawData[titleField] || masterRecord?.[titleField] || current.title
+      current.subtitle = rawData[subtitleField] || masterRecord?.[subtitleField] || current.subtitle
       collection[accountKey] = current
 
       return collection
     }, {})
 
-  const details = Object.values(grouped).map((item) => ({
-    id: item.id,
-    title: item.title,
-    subtitle: item.subtitle ? `A/C ${item.subtitle}` : 'Stored entry',
-    value: item.total,
-    invested: item.deposit,
-  }))
+  const details = Object.values(grouped)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      subtitle: item.subtitle ? `A/C ${item.subtitle}` : 'Stored entry',
+      value: item.total,
+      invested: item.deposit,
+    }))
+    .sort(sortByValueDesc)
 
   return buildSummary(categoryId, {
     value: details.reduce((sum, item) => sum + item.value, 0),
@@ -239,7 +274,9 @@ function buildAccountLevelSummary(categoryId, keyField, titleField, subtitleFiel
       return collection
     }, {})
 
-  return Object.values(grouped).map(({ lastDate, ...detail }) => detail)
+  return Object.values(grouped)
+    .map(({ lastDate, ...detail }) => detail)
+    .sort(sortByInvestedDesc)
 }
 
 function getGoldSilverCategorySummary() {
@@ -273,7 +310,7 @@ function getGoldSilverCategorySummary() {
       return collection
     }, {})
 
-  const details = Object.values(grouped)
+  const details = Object.values(grouped).sort(sortByTitle)
   const totalInvested = details.reduce((sum, item) => sum + item.invested, 0)
   const totalGrams = details.reduce((sum, item) => sum + toNumber(item.totalGrams), 0)
   const charges = details.reduce((sum, item) => sum + toNumber(item.charges), 0)
@@ -288,13 +325,15 @@ function getGoldSilverCategorySummary() {
 }
 
 function getMasterCategorySummary(categoryId, items, valueSelector, investedSelector, titleSelector) {
-  const details = items.map((item) => ({
-    id: item.id,
-    title: titleSelector(item),
-    subtitle: item.maturityDate ?? item.startDate ?? '',
-    value: valueSelector(item),
-    invested: investedSelector(item),
-  }))
+  const details = items
+    .map((item) => ({
+      id: item.id,
+      title: titleSelector(item),
+      subtitle: item.maturityDate ?? item.startDate ?? '',
+      value: valueSelector(item),
+      invested: investedSelector(item),
+    }))
+    .sort(sortByValueDesc)
 
   return buildSummary(categoryId, {
     value: details.reduce((total, item) => total + item.value, 0),
@@ -309,15 +348,17 @@ function getFdCategorySummary() {
   return buildSummary('fd', {
     value: items.reduce((sum, item) => sum + toNumber(item.calculated?.maturityAmount), 0),
     invested: items.reduce((sum, item) => sum + toNumber(getTransactionRawData(item).depositAmount), 0),
-    details: items.map((item) => ({
-      id: item.id,
-      title: getTransactionRawData(item).bankName,
-      subtitle: getTransactionRawData(item).accountNumber
-        ? `A/C ${getTransactionRawData(item).accountNumber}`
-        : 'Stored entry',
-      value: toNumber(item.calculated?.maturityAmount),
-      invested: toNumber(getTransactionRawData(item).depositAmount),
-    })),
+    details: items
+      .map((item) => ({
+        id: item.id,
+        title: getTransactionRawData(item).bankName,
+        subtitle: getTransactionRawData(item).accountNumber
+          ? `A/C ${getTransactionRawData(item).accountNumber}`
+          : 'Stored entry',
+        value: toNumber(item.calculated?.maturityAmount),
+        invested: toNumber(getTransactionRawData(item).depositAmount),
+      }))
+      .sort(sortByValueDesc),
   })
 }
 
@@ -334,13 +375,15 @@ function getRdCategorySummary() {
       (sum, item) => sum + toNumber(item.calculated?.totalInvested ?? item.monthlyDeposit * item.tenureMonths),
       0,
     ),
-    details: items.map((item) => ({
-      id: item.id,
-      title: item.bankName,
-      subtitle: `A/C ${item.accountNumber}`,
-      value: toNumber(item.calculated?.maturityAmount ?? item.monthlyDeposit * item.tenureMonths),
-      invested: toNumber(item.calculated?.totalInvested ?? item.monthlyDeposit * item.tenureMonths),
-    })),
+    details: items
+      .map((item) => ({
+        id: item.id,
+        title: item.bankName,
+        subtitle: `A/C ${item.accountNumber}`,
+        value: toNumber(item.calculated?.maturityAmount ?? item.monthlyDeposit * item.tenureMonths),
+        invested: toNumber(item.calculated?.totalInvested ?? item.monthlyDeposit * item.tenureMonths),
+      }))
+      .sort(sortByValueDesc),
   })
 }
 
@@ -383,7 +426,7 @@ function getBondsCategorySummary() {
     return {
       id: txn.id,
       title: rawData.bondName,
-      subtitle: rawData.issuer,
+      subtitle: rawData.issuerName,
       value,
       invested: value,
     }
@@ -392,7 +435,7 @@ function getBondsCategorySummary() {
   return buildSummary(bondsCategory, {
     value: details.reduce((sum, item) => sum + item.value, 0),
     invested: details.reduce((sum, item) => sum + item.invested, 0),
-    details,
+    details: [...details].sort(sortByInvestedDesc),
   })
 }
 
@@ -420,18 +463,20 @@ function getLicCategorySummary() {
         0
       return sum + toNumber(premiumPaid)
     }, 0),
-    details: items.map((item) => ({
-      id: item.id,
-      title: item.policyName,
-      subtitle: item.policyNumber,
-      value: toNumber(item.sumAssured),
-      invested:
-        toNumber(
-          premiumByPolicy[String(item.id)] ??
-          premiumByPolicy[String(item.policyNumber ?? '').trim()] ??
-          0,
-        ),
-    })),
+    details: items
+      .map((item) => ({
+        id: item.id,
+        title: item.policyName,
+        subtitle: item.policyNumber,
+        value: toNumber(item.sumAssured),
+        invested:
+          toNumber(
+            premiumByPolicy[String(item.id)] ??
+            premiumByPolicy[String(item.policyNumber ?? '').trim()] ??
+            0,
+          ),
+      }))
+      .sort(sortByInvestedDesc),
   })
 }
 
@@ -452,7 +497,7 @@ function getRealEstateCategorySummary() {
   return buildSummary(realEstateCategory, {
     value: details.reduce((sum, item) => sum + item.value, 0),
     invested: details.reduce((sum, item) => sum + item.invested, 0),
-    details,
+    details: [...details].sort(sortByInvestedDesc),
   })
 }
 
@@ -482,7 +527,7 @@ function getCryptoCategorySummary() {
     invested: details.reduce((sum, item) => sum + item.invested, 0),
     grossValue: details.reduce((sum, item) => sum + toNumber(item.grossValue), 0),
     charges: details.reduce((sum, item) => sum + toNumber(item.charges), 0),
-    details,
+    details: [...details].sort(sortByInvestedDesc),
   })
 }
 

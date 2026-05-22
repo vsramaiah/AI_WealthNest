@@ -147,19 +147,19 @@ export default function Settings() {
           <SettingRow
             icon={Download}
             iconTone="from-sky-500 to-blue-400"
-            title="Export JSON Backup"
+            title="Backup"
             subtitle="Download your full local WealthNest data as a JSON backup file."
           >
             <button type="button" onClick={handleBackupDownload} className="secondary-button px-3 py-2">
-              Export
+              Backup Now
             </button>
           </SettingRow>
 
           <SettingRow
             icon={Upload}
             iconTone="from-emerald-500 to-green-400"
-            title="Restore from File"
-            subtitle="Replace current local data with a valid backup file."
+            title="Restore Backup"
+            subtitle="Import a previously exported backup and restore transactions."
           >
             <button
               type="button"

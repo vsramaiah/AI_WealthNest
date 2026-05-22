@@ -44,6 +44,10 @@ function isRealEstateCategory(category) {
   return category.id === 'realEstate'
 }
 
+function isAccountRecordCategory(category) {
+  return ['mf', 'rd', 'ppf', 'epf', 'nps', 'lic'].includes(category.id)
+}
+
 function isGrossChargesTotalCategory(category) {
   return isStockCategory(category) || isCryptoCategory(category)
 }
@@ -55,6 +59,22 @@ function MetricCard({ label, value, toneClassName = 'text-wn-text' }) {
       <p className={`mt-2 text-sm font-semibold ${toneClassName}`}>{value}</p>
     </div>
   )
+}
+
+function getSummaryAmount(category) {
+  if (isGrossChargesTotalCategory(category)) {
+    return category.grossValue ?? 0
+  }
+
+  if (isGoldSilverCategory(category) || isRealEstateCategory(category) || isMutualFundCategory(category)) {
+    return category.invested ?? 0
+  }
+
+  if (isInsuranceCategory(category)) {
+    return category.value ?? 0
+  }
+
+  return category.value ?? 0
 }
 
 function getSummaryValueLabel(category) {
@@ -194,33 +214,29 @@ export default function AssetDetails() {
   }
 
   const summaryMetrics = getDisplayMetrics(category, category)
-  const populatedCount = category.details.filter((item) => Number(item.value ?? item.invested ?? 0) > 0).length
+  const detailCount = category.details.length
 
   return (
     <PageShell
       eyebrow={category.group}
       title={category.label}
-      description="Review the category summary and open any saved record to jump into its transaction history."
+      description="Review category totals, saved records, and linked transaction history."
       backTo="/portfolio"
       backLabel="Back to Portfolio"
     >
       <div className="space-y-4">
         <article className="glass-card p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
             <div className="min-w-0">
               <p className="metric-label">Category Summary</p>
               <p className="mt-2 text-2xl font-semibold tracking-tight text-wn-text sm:text-[2rem]">
-                {formatCurrency(category.value)}
-              </p>
-              <p className="mt-2 text-sm text-wn-muted">
-                {category.label} currently includes {category.details.length}{' '}
-                {category.details.length === 1 ? 'record' : 'records'}.
+                {formatCurrency(getSummaryAmount(category))}
               </p>
             </div>
 
             <div className="text-right">
-              <p className="metric-label">Active Records</p>
-              <p className="mt-2 text-sm font-semibold text-wn-text">{populatedCount}</p>
+              <p className="metric-label">Records</p>
+              <p className="mt-2 text-sm font-semibold text-wn-text">{detailCount}</p>
             </div>
           </div>
 
@@ -241,30 +257,36 @@ export default function AssetDetails() {
             const itemMetrics = getDisplayMetrics(category, item)
 
             return (
-              <button
+              <article
                 key={item.id}
-                type="button"
-                onClick={() =>
-                  navigate('/transactions', {
-                    state: {
-                      recordFilter: {
-                        category: category.id,
-                        itemId: item.id,
-                        title: item.title,
-                      },
-                    },
-                  })
-                }
-                className="glass-card block w-full p-4 text-left transition-transform duration-200 hover:-translate-y-0.5"
+                className="glass-card p-4"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-wn-text">{item.title}</p>
-                    <p className="mt-1 text-sm text-wn-muted">{item.subtitle || 'Stored entry'}</p>
+                    <p className="truncate text-base font-semibold text-wn-text">{item.title || category.label}</p>
+                    <p className="mt-1 text-sm text-wn-muted">
+                      {item.subtitle || 'Saved record'}
+                    </p>
                   </div>
-                  <div className="shrink-0 p-1 text-wn-muted">
-                    <ArrowUpRight size={18} />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate('/transactions', {
+                        state: {
+                          recordFilter: {
+                            category: category.id,
+                            itemId: item.id,
+                            title: item.title,
+                          },
+                        },
+                      })
+                    }
+                    className="secondary-button shrink-0 px-3 py-2 text-xs"
+                    aria-label={`View transactions for ${item.title || category.label}`}
+                  >
+                    <span>View</span>
+                    <ArrowUpRight className="ml-1.5" size={15} />
+                  </button>
                 </div>
 
                 <div className={`mt-3 grid gap-4 ${getGridClass(category)}`}>
@@ -277,15 +299,30 @@ export default function AssetDetails() {
                     />
                   ))}
                 </div>
-              </button>
+              </article>
             )
           })
         ) : (
           <article className="glass-card p-5">
-            <p className="section-title">No asset records yet</p>
-            <p className="mt-2 text-sm text-wn-muted">
-              Add entries in this category to populate the detail view.
+            <p className="section-title">
+              {isAccountRecordCategory(category) ? 'No saved records yet' : 'No asset records yet'}
             </p>
+            <p className="mt-2 text-sm leading-6 text-wn-muted">
+              {isAccountRecordCategory(category)
+                ? 'Create an account record from Add > Accounts, then add entries against it to see linked transaction history here.'
+                : 'Add entries in this category to populate the detail view.'}
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                navigate('/add', {
+                  state: {},
+                })
+              }
+              className="mt-4 primary-button w-full"
+            >
+              Go to Add
+            </button>
           </article>
         )}
       </div>

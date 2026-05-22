@@ -1,4 +1,4 @@
-import { CalendarDays, SlidersHorizontal } from 'lucide-react'
+import { CalendarDays, Funnel } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CategoryIconBadge } from '../components/CategoryVisuals'
@@ -24,46 +24,125 @@ function formatCurrency(amount) {
   }).format(amount)
 }
 
+function joinMetaParts(parts) {
+  return parts.filter(Boolean).join(' - ')
+}
+
 function formatTxnMeta(txn) {
   const raw = txn.rawData ?? {}
+  const txnType = normalizeType(raw.txnType ?? txn.type)
 
   if (txn.category === 'stocks') {
     const lineItems = getStockLineItems(raw)
 
     if (lineItems.length > 1) {
       const totalQuantity = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
-      return `${lineItems.length} stocks - Qty ${totalQuantity} - Charges ${formatCurrency(raw.charges ?? 0)}`
+      return joinMetaParts([
+        `${lineItems.length} stocks`,
+        `Qty ${totalQuantity}`,
+        `Charges ${formatCurrency(raw.charges ?? 0)}`,
+      ])
     }
 
     const item = lineItems[0] ?? {}
-    return `${item.quantity ?? 0} Shares @ ${formatCurrency(item.pricePerShare ?? 0)}`
+    return joinMetaParts([
+      item.ticker,
+      `${item.quantity ?? 0} Shares @ ${formatCurrency(item.pricePerShare ?? 0)}`,
+      raw.broker,
+    ])
   }
 
   if (txn.category === 'mf') {
     const folioText = raw.folioNumber ? `Folio ${raw.folioNumber}` : raw.fundId ? `ID ${raw.fundId}` : ''
     const unitsText = raw.units ? `${raw.units} Units` : formatCurrency(raw.amount ?? 0)
-    return folioText ? `${folioText} - ${unitsText}` : unitsText
+    return joinMetaParts([folioText, unitsText])
+  }
+
+  if (txn.category === 'goldSilver') {
+    return joinMetaParts([
+      raw.assetType,
+      raw.quantity ? `${raw.quantity} grams` : '',
+      raw.holdingType,
+    ])
   }
 
   if (txn.category === 'ppf') {
-    return raw.txnType === 'INTEREST'
-      ? 'Interest Credited'
-      : formatCurrency(raw.amount ?? raw.depositAmount ?? 0)
+    return joinMetaParts([
+      txnType,
+      raw.bankName,
+      raw.accountNumber ? `A/C ${raw.accountNumber}` : '',
+      formatCurrency(raw.amount ?? raw.depositAmount ?? txn.amount ?? 0),
+    ])
   }
 
   if (txn.category === 'fd') {
-    return formatCurrency(raw.depositAmount ?? txn.amount ?? 0)
+    return joinMetaParts([
+      raw.bankName,
+      raw.accountNumber ? `A/C ${raw.accountNumber}` : '',
+      formatCurrency(raw.depositAmount ?? txn.amount ?? 0),
+    ])
   }
 
   if (txn.category === 'rd' || txn.category === 'epf') {
-    return raw.txnType === 'INTEREST'
-      ? 'Interest Credited'
-      : formatCurrency(
-          raw.amount ??
-            raw.depositAmount ??
-            ((Number(raw.employeeContribution) || 0) + (Number(raw.employerContribution) || 0)) ??
-            txn.amount,
-        )
+    const contributionAmount =
+      raw.amount ??
+      raw.depositAmount ??
+      ((Number(raw.employeeContribution) || 0) + (Number(raw.employerContribution) || 0)) ??
+      txn.amount
+
+    return joinMetaParts([
+      txnType,
+      raw.bankName || raw.employerName,
+      raw.accountNumber ? `A/C ${raw.accountNumber}` : '',
+      raw.memberId ? `Member ${raw.memberId}` : '',
+      formatCurrency(contributionAmount),
+    ])
+  }
+
+  if (txn.category === 'nps') {
+    return joinMetaParts([
+      txnType,
+      raw.tier,
+      raw.scheme,
+      raw.pranNumber ? `PRAN ${raw.pranNumber}` : '',
+      formatCurrency(raw.amount ?? txn.amount ?? 0),
+    ])
+  }
+
+  if (txn.category === 'bonds') {
+    return joinMetaParts([
+      txnType,
+      raw.issuerName,
+      raw.quantity ? `Qty ${raw.quantity}` : '',
+      raw.couponRate ? `${raw.couponRate}% coupon` : '',
+    ])
+  }
+
+  if (txn.category === 'lic') {
+    return joinMetaParts([
+      raw.policyNumber ? `Policy ${raw.policyNumber}` : '',
+      raw.financialYear,
+      raw.paymentFrequency,
+      formatCurrency(raw.premiumAmount ?? txn.amount ?? 0),
+    ])
+  }
+
+  if (txn.category === 'realEstate') {
+    return joinMetaParts([
+      raw.location,
+      raw.ownershipPercent ? `${raw.ownershipPercent}% ownership` : '',
+      formatCurrency(raw.purchaseValue ?? txn.amount ?? 0),
+    ])
+  }
+
+  if (txn.category === 'crypto') {
+    return joinMetaParts([
+      txnType,
+      raw.symbol,
+      raw.quantity ? `Qty ${raw.quantity}` : '',
+      raw.exchange || raw.walletName || raw.walletExchangeName,
+      raw.charges ? `Fee ${formatCurrency(raw.charges)}` : '',
+    ])
   }
 
   return raw.notes || formatCurrency(txn.amount)
@@ -165,6 +244,33 @@ function getMasterOnlyMessage(category) {
   return 'Saved account records also support due-date tracking and reminders across the app.'
 }
 
+function normalizeType(type) {
+  return String(type || '').toUpperCase()
+}
+
+function isReductionType(type) {
+  const normalized = normalizeType(type)
+  return normalized === 'SELL' || normalized === 'REDEEM' || normalized === 'TRANSFER OUT'
+}
+
+function summarizeAmounts(items) {
+  return items.reduce(
+    (summary, txn) => {
+      const amount = Number(txn.amount) || 0
+
+      if (isReductionType(txn.type)) {
+        summary.reduced += amount
+      } else {
+        summary.added += amount
+      }
+
+      summary.total += amount
+      return summary
+    },
+    { added: 0, reduced: 0, total: 0 },
+  )
+}
+
 function matchesRecordFilter(txn, recordFilter) {
   if (!recordFilter?.category || txn.category !== recordFilter.category) {
     return false
@@ -172,19 +278,33 @@ function matchesRecordFilter(txn, recordFilter) {
 
   const raw = txn.rawData ?? {}
   const itemId = String(recordFilter.itemId ?? '').trim()
+  const normalizedItemId = itemId.toUpperCase()
 
   switch (recordFilter.category) {
     case 'mf':
-    case 'rd':
     case 'lic':
-    case 'ppf':
-    case 'epf':
-    case 'nps':
     case 'crypto':
       return String(raw.masterId ?? '').trim() === itemId
+    case 'rd':
+    case 'ppf':
+      return (
+        String(raw.masterId ?? '').trim() === itemId ||
+        String(raw.accountNumber ?? '').trim().toUpperCase() === normalizedItemId
+      )
+    case 'epf':
+      return (
+        String(raw.masterId ?? '').trim() === itemId ||
+        String(raw.uanNumber ?? '').trim().toUpperCase() === normalizedItemId ||
+        String(raw.memberId ?? '').trim().toUpperCase() === normalizedItemId
+      )
+    case 'nps':
+      return (
+        String(raw.masterId ?? '').trim() === itemId ||
+        String(raw.pranNumber ?? '').trim().toUpperCase() === normalizedItemId
+      )
     case 'stocks':
       return getStockLineItems(raw).some(
-        (item) => String(item.ticker ?? '').trim().toUpperCase() === itemId.toUpperCase(),
+        (item) => String(item.ticker ?? '').trim().toUpperCase() === normalizedItemId,
       )
     case 'goldSilver':
       return String(raw.assetType ?? '').trim().toLowerCase() === itemId.toLowerCase()
@@ -199,9 +319,9 @@ function matchesRecordFilter(txn, recordFilter) {
 }
 
 function toneForType(type) {
-  const normalized = String(type).toUpperCase()
+  const normalized = normalizeType(type)
 
-  if (normalized === 'BUY' || normalized === 'SIP' || normalized === 'INVEST' || normalized === 'DEPOSIT' || normalized === 'INTEREST' || normalized === 'TRANSFER IN') {
+  if (normalized === 'BUY' || normalized === 'SIP' || normalized === 'LUMPSUM' || normalized === 'INVEST' || normalized === 'DEPOSIT' || normalized === 'TRANSFER IN') {
     return 'text-emerald-400'
   }
 
@@ -252,6 +372,7 @@ function TransactionRow({ txn }) {
 
 export default function Transactions() {
   const location = useLocation()
+  const navigate = useNavigate()
   const recordFilter = location.state?.recordFilter ?? null
   const transactions = useMemo(() => listInvestmentTransactions(), [location.key])
   const [activeType, setActiveType] = useState('all')
@@ -352,10 +473,7 @@ export default function Transactions() {
     }, {})
   }, [filteredTransactions])
 
-  const totalAmount = useMemo(
-    () => filteredTransactions.reduce((sum, txn) => sum + (Number(txn.amount) || 0), 0),
-    [filteredTransactions],
-  )
+  const amountSummary = useMemo(() => summarizeAmounts(filteredTransactions), [filteredTransactions])
 
   const dateRangeLabel = useMemo(() => {
     const datedTransactions = filteredTransactions.filter((txn) => formatDateRange(txn.date))
@@ -389,6 +507,25 @@ export default function Transactions() {
     return 'All dates'
   }, [draftFilters.dateFrom, draftFilters.dateTo])
 
+  const appliedDateRangeLabel = useMemo(() => {
+    const from = formatDateRange(appliedFilters.dateFrom)
+    const to = formatDateRange(appliedFilters.dateTo)
+
+    if (from && to) {
+      return `${from} - ${to}`
+    }
+
+    if (from) {
+      return `From ${from}`
+    }
+
+    if (to) {
+      return `Until ${to}`
+    }
+
+    return 'All dates'
+  }, [appliedFilters.dateFrom, appliedFilters.dateTo])
+
   const combinedFilterLabel = useMemo(() => {
     const parts = []
 
@@ -409,7 +546,16 @@ export default function Transactions() {
     }
 
     if (appliedFilters.dateFrom || appliedFilters.dateTo) {
-      parts.push(`Dates: ${draftDateRangeLabel}`)
+      parts.push(`Dates: ${appliedDateRangeLabel}`)
+    }
+
+    if (appliedFilters.sortBy !== 'latest') {
+      const sortLabels = {
+        oldest: 'Oldest first',
+        amountHigh: 'Amount high to low',
+        amountLow: 'Amount low to high',
+      }
+      parts.push(`Sort: ${sortLabels[appliedFilters.sortBy] ?? appliedFilters.sortBy}`)
     }
 
     return parts.join(' | ')
@@ -418,13 +564,42 @@ export default function Transactions() {
     appliedFilters.category,
     appliedFilters.dateFrom,
     appliedFilters.dateTo,
+    appliedFilters.sortBy,
     appliedFilters.transactionType,
-    draftDateRangeLabel,
+    appliedDateRangeLabel,
     recordFilter?.title,
   ])
 
+  const hasActiveFilters = Boolean(
+    recordFilter ||
+      activeType !== 'all' ||
+      appliedFilters.category !== 'all' ||
+      appliedFilters.transactionType !== 'all' ||
+      appliedFilters.dateFrom ||
+      appliedFilters.dateTo ||
+      appliedFilters.sortBy !== 'latest',
+  )
+
+  const resetFilters = () => {
+    const nextFilters = {
+      dateFrom: '',
+      dateTo: '',
+      category: 'all',
+      transactionType: 'all',
+      sortBy: 'latest',
+    }
+
+    setDraftFilters(nextFilters)
+    setAppliedFilters(nextFilters)
+    setActiveType('all')
+
+    if (recordFilter) {
+      navigate('/transactions', { replace: true })
+    }
+  }
+
   return (
-    <PageShell>
+    <PageShell title="Transaction History">
       <div className="space-y-4">
         <article className="glass-card p-5">
           <div className="grid grid-cols-2 gap-4">
@@ -437,19 +612,40 @@ export default function Transactions() {
             <div className="min-w-0 text-right">
               <p className="text-sm text-wn-muted">Total Amount</p>
               <p className="mt-2 max-w-full overflow-hidden whitespace-nowrap text-[clamp(1.05rem,4.8vw,1.5rem)] font-semibold leading-tight text-wn-text">
-                {formatCurrency(totalAmount)}
+                {formatCurrency(amountSummary.total)}
               </p>
             </div>
           </div>
 
           <div className="mt-4 border-t border-wn-border pt-3">
             <p className="text-sm text-wn-muted">{dateRangeLabel}</p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-wn-border px-3 py-2">
+                <p className="text-[0.65rem] uppercase tracking-[0.16em] text-wn-muted">Credits</p>
+                <p className="mt-1 truncate text-sm font-semibold text-emerald-400">
+                  {formatCurrency(amountSummary.added)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-wn-border px-3 py-2">
+                <p className="text-[0.65rem] uppercase tracking-[0.16em] text-wn-muted">Debits</p>
+                <p className="mt-1 truncate text-sm font-semibold text-rose-400">
+                  {formatCurrency(amountSummary.reduced)}
+                </p>
+              </div>
+            </div>
           </div>
 
           {combinedFilterLabel ? (
-            <p className="mt-3 text-sm text-wn-muted">
-              Active filters: {combinedFilterLabel}
-            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-wn-muted">
+              <span>Active filters: {combinedFilterLabel}</span>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="rounded-full border border-wn-border-strong px-3 py-1 text-xs font-semibold text-wn-text"
+              >
+                Clear
+              </button>
+            </div>
           ) : null}
           <p className="mt-2 text-sm text-wn-muted">
             {getMasterOnlyMessage(appliedFilters.category)}
@@ -477,10 +673,14 @@ export default function Transactions() {
           <button
             type="button"
             onClick={() => setFilterOpen((current) => !current)}
-            className="secondary-button h-10 w-10 shrink-0 rounded-2xl px-0 py-0"
+            className={`secondary-button h-10 w-10 shrink-0 rounded-2xl px-0 py-0 ${
+              hasActiveFilters
+                ? 'border-wn-accent/60 bg-wn-accent/15 text-wn-accent-strong shadow-[0_0_18px_var(--color-wn-accent-glow)]'
+                : ''
+            }`}
             aria-label="Open filters"
           >
-            <SlidersHorizontal size={18} strokeWidth={2.1} />
+            <Funnel size={18} strokeWidth={2.1} />
           </button>
         </div>
 
@@ -584,18 +784,7 @@ export default function Transactions() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    const resetFilters = {
-                      dateFrom: '',
-                      dateTo: '',
-                      category: 'all',
-                      transactionType: 'all',
-                      sortBy: 'latest',
-                    }
-                    setDraftFilters(resetFilters)
-                    setAppliedFilters(resetFilters)
-                    setActiveType('all')
-                  }}
+                  onClick={resetFilters}
                   className="secondary-button"
                 >
                   Reset
@@ -620,9 +809,14 @@ export default function Transactions() {
             <section key={monthLabel} className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-lg font-semibold text-wn-text">{monthLabel}</p>
-                <span className="text-xs uppercase tracking-[0.18em] text-wn-muted">
-                  {items.length} {items.length === 1 ? 'entry' : 'entries'}
-                </span>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-wn-text">
+                    {formatCurrency(summarizeAmounts(items).total)}
+                  </p>
+                  <p className="mt-1 text-[0.65rem] uppercase tracking-[0.16em] text-wn-muted">
+                    {items.length} {items.length === 1 ? 'entry' : 'entries'}
+                  </p>
+                </div>
               </div>
 
               <div className="overflow-hidden rounded-[24px] border border-wn-border bg-wn-card/90">

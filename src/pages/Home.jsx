@@ -69,7 +69,7 @@ function buildAllocationGradient(groups) {
 
 function getUpcomingDueSummary(reminders) {
   if (!reminders.length) {
-    return 'No upcoming due dates'
+    return 'No due dates'
   }
 
   return reminders[0].dueDate
@@ -104,8 +104,8 @@ export default function Home() {
 
   return (
     <PageShell>
-      <div className="space-y-4">
-        <section className="rounded-[30px] border border-wn-border bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-wn-card)_94%,white_6%),color-mix(in_srgb,var(--color-wn-bg-soft)_92%,var(--color-wn-card)_8%))] p-5 shadow-[0_24px_50px_rgba(0,0,0,0.18)]">
+      <div className="space-y-4 pb-20">
+        <section className="rounded-[30px] border border-wn-border bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-wn-card)_94%,white_6%),color-mix(in_srgb,var(--color-wn-bg-soft)_92%,var(--color-wn-card)_8%))] p-4 shadow-[0_24px_50px_rgba(0,0,0,0.18)] sm:p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               {isEditingName ? (
@@ -131,7 +131,7 @@ export default function Home() {
                 </form>
               ) : (
                 <div className="flex items-center gap-2">
-                  <h2 className="truncate text-[2rem] font-semibold tracking-tight text-wn-text">
+                  <h2 className="truncate text-[clamp(1.65rem,7vw,2rem)] font-semibold tracking-tight text-wn-text">
                     Hi, {settings.investorName || 'Investor'}
                   </h2>
                   <button
@@ -159,18 +159,18 @@ export default function Home() {
             </button>
           </div>
 
-          <article className="mt-5 overflow-hidden rounded-[28px] border border-wn-border bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-wn-card-strong)_92%,white_8%),color-mix(in_srgb,var(--color-wn-card)_96%,var(--color-wn-bg)_4%))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <article className="mt-5 overflow-hidden rounded-[28px] border border-wn-border bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-wn-card-strong)_92%,white_8%),color-mix(in_srgb,var(--color-wn-card)_96%,var(--color-wn-bg)_4%))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-5">
             <p className="metric-label">Portfolio Value</p>
-            <p className="mt-3 max-w-full overflow-hidden text-[clamp(2rem,8vw,2.35rem)] font-semibold leading-tight tracking-tight text-wn-text">
+            <p className="mt-3 max-w-full overflow-hidden whitespace-nowrap text-[clamp(1.85rem,7.4vw,2.35rem)] font-semibold leading-tight tracking-tight text-wn-text">
               {showNetWorth ? formatCurrency(overview.totalNetWorth) : '\u20B9x,xxx'}
             </p>
-            <div className="mt-4 flex items-end justify-between gap-4">
+            <div className="mt-4 flex items-end justify-between gap-3">
               <p className="flex min-w-0 items-center gap-2 text-sm font-medium leading-6 text-wn-success">
                 <TrendingUp size={16} strokeWidth={2.2} />
                 <span>{overview.groupedAllocation.length} asset groups tracked</span>
               </p>
 
-              <svg viewBox="0 0 96 72" className="h-14 w-16 shrink-0 text-wn-success" aria-hidden="true" fill="none">
+              <svg viewBox="0 0 96 72" className="h-12 w-14 shrink-0 text-wn-success sm:h-14 sm:w-16" aria-hidden="true" fill="none">
                 <path d="M8 58L24 46L38 60L56 28L72 34L88 12" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
                 <circle cx="88" cy="12" r="5" fill="currentColor" />
               </svg>
@@ -179,17 +179,19 @@ export default function Home() {
 
           <div className="mt-6 grid grid-cols-2 gap-3">
             <div className="rounded-[24px] border border-wn-border bg-white/[0.04] p-4">
-              <p className="metric-label">Categories</p>
+              <p className="metric-label">Asset Groups</p>
               <p className="mt-2 text-xl font-semibold text-wn-text">
-                {overview.groupedAllocation.reduce((total, group) => total + group.categories.length, 0)}
+                {overview.groupedAllocation.length}
               </p>
             </div>
             <div className="rounded-[24px] border border-wn-border bg-white/[0.04] p-4">
               <p className="metric-label">Next Due Date</p>
-              <p className="mt-2 text-base font-semibold text-wn-text">
+              <p className="mt-2 truncate text-base font-semibold text-wn-text">
                 {getUpcomingDueSummary(reminders)}
               </p>
-              <p className="mt-1 text-xs text-wn-muted">{reminders.length} active reminders</p>
+              <p className="mt-1 text-xs text-wn-muted">
+                {reminders.length} active {reminders.length === 1 ? 'reminder' : 'reminders'}
+              </p>
             </div>
           </div>
         </section>
@@ -208,10 +210,11 @@ export default function Home() {
           </div>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-[150px_minmax(0,1fr)]">
-            <div className="mx-auto flex h-[150px] w-[150px] items-center justify-center rounded-full p-4" style={{ background: donutBackground }}>
+            <div className="mx-auto flex h-[142px] w-[142px] items-center justify-center rounded-full p-4 sm:h-[150px] sm:w-[150px]" style={{ background: donutBackground }}>
               <div className="flex h-full w-full min-w-0 items-center justify-center rounded-full bg-wn-bg px-3 text-center shadow-inner">
                 <div>
-                  <p className="max-w-[6.25rem] overflow-hidden text-[clamp(0.72rem,3.4vw,0.95rem)] font-semibold leading-tight tracking-tight text-wn-text">
+                  <p className="text-[0.6rem] uppercase tracking-[0.18em] text-wn-muted">Total</p>
+                  <p className="mt-1 max-w-[5.6rem] overflow-hidden text-[clamp(0.64rem,3vw,0.82rem)] font-semibold leading-tight tracking-tight text-wn-text">
                     {formatCurrency(overview.totalNetWorth)}
                   </p>
                 </div>
@@ -240,12 +243,9 @@ export default function Home() {
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-4 px-1">
             <div>
-              <p className="section-title">Category Cards</p>
-              <p className="mt-1 text-sm text-wn-muted">Grouped by investment class</p>
+              <p className="section-title">Asset Groups</p>
+              <p className="mt-1 text-sm text-wn-muted">Tap a group to review portfolio details.</p>
             </div>
-            <span className="text-xs font-medium uppercase tracking-[0.18em] text-wn-muted">
-              {overview.groupedAllocation.length} groups
-            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -254,16 +254,14 @@ export default function Home() {
                 key={group.group}
                 to="/portfolio"
                 state={{ initialGroup: group.group }}
-                className={`block rounded-[26px] border border-wn-border bg-gradient-to-br ${GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]} p-4 text-left shadow-[0_16px_40px_rgba(0,0,0,0.12)]`}
+                className={`block rounded-[24px] border border-wn-border bg-gradient-to-br ${GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]} p-3 text-left shadow-[0_16px_40px_rgba(0,0,0,0.12)]`}
               >
-                <div className="min-w-0 rounded-[22px] bg-white/[0.16] p-4 backdrop-blur">
+                <div className="min-w-0 rounded-[20px] bg-white/[0.16] p-3.5 backdrop-blur">
                   <p className="text-sm font-medium text-wn-text">{group.group}</p>
                   <p className={`mt-3 max-w-full overflow-hidden whitespace-nowrap font-semibold leading-tight tracking-tight text-wn-text ${getCategoryValueClass(group.value)}`}>
                     {formatCurrency(group.value)}
                   </p>
-                  <p className="mt-2 text-sm text-wn-muted">
-                    {group.categories.length} categories
-                  </p>
+                  <p className="mt-2 text-xs font-medium text-wn-muted">Open Portfolio</p>
                 </div>
               </Link>
             ))}
@@ -274,13 +272,13 @@ export default function Home() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="section-title">Upcoming Due Dates</p>
-              <p className="mt-1 text-sm text-wn-muted">
-                Upcoming due dates generated from your saved records.
-              </p>
+              <p className="mt-1 text-sm text-wn-muted">Upcoming dues from saved account records.</p>
             </div>
             <div className="text-right">
               <p className="metric-label">Preview</p>
-              <p className="mt-1 text-sm font-semibold text-wn-text">{reminders.length} items</p>
+              <p className="mt-1 text-sm font-semibold text-wn-text">
+                {reminders.length} {reminders.length === 1 ? 'item' : 'items'}
+              </p>
             </div>
           </div>
 
@@ -290,8 +288,8 @@ export default function Home() {
                 <div key={reminder.id} className="border-b border-wn-border py-3 last:border-b-0">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-wn-text">{reminder.title}</p>
-                      <p className="mt-1 text-sm text-wn-muted">{reminder.message}</p>
+                      <p className="line-clamp-2 text-sm font-semibold text-wn-text">{reminder.title}</p>
+                      <p className="mt-1 line-clamp-1 text-xs text-wn-muted">{reminder.message}</p>
                     </div>
                     {Number(reminder.amount) > 0 ? (
                       <span className="shrink-0 text-sm font-semibold text-wn-success">
@@ -300,7 +298,7 @@ export default function Home() {
                     ) : null}
                   </div>
 
-                  <div className="mt-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-wn-muted">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-wn-muted">
                     <span>{reminder.type}</span>
                     <span className="h-1 w-1 rounded-full bg-wn-muted/60" />
                     <span>{reminder.dueDate}</span>
