@@ -35,18 +35,18 @@ function getCategoryValueClass(amount) {
   const value = formatCurrency(amount)
 
   if (value.length >= 14) {
-    return 'text-[1.2rem]'
+    return 'text-[0.98rem]'
   }
 
   if (value.length >= 12) {
-    return 'text-[1.35rem]'
+    return 'text-[1.08rem]'
   }
 
   if (value.length >= 10) {
-    return 'text-[1.55rem]'
+    return 'text-[1.18rem]'
   }
 
-  return 'text-2xl'
+  return 'text-[1.35rem]'
 }
 
 function buildAllocationGradient(groups) {
@@ -258,7 +258,7 @@ export default function Home() {
               >
                 <div className="min-w-0 rounded-[20px] bg-white/[0.16] p-3.5 backdrop-blur">
                   <p className="text-sm font-medium text-wn-text">{group.group}</p>
-                  <p className={`mt-3 max-w-full overflow-hidden whitespace-nowrap font-semibold leading-tight tracking-tight text-wn-text ${getCategoryValueClass(group.value)}`}>
+                  <p className={`mt-3 max-w-full break-words font-semibold leading-tight tracking-tight text-wn-text ${getCategoryValueClass(group.value)}`}>
                     {formatCurrency(group.value)}
                   </p>
                   <p className="mt-2 text-xs font-medium text-wn-muted">Open Portfolio</p>

@@ -5,7 +5,6 @@ import {
   epfCategory,
   getFdSummary,
   getGoldSilverSummary,
-  getRdSummary,
   goldSilverCategory,
   npsCategory,
   ppfCategory,
@@ -363,27 +362,12 @@ function getFdCategorySummary() {
 }
 
 function getRdCategorySummary() {
-  const items = loadData().masters.rd ?? []
-
-  return buildSummary('rd', {
-    value: items.reduce((sum, item) => {
-      const totalInvested = toNumber(item.monthlyDeposit) * toNumber(item.tenureMonths)
-      const maturityAmount = toNumber(item.calculated?.maturityAmount)
-      return sum + (maturityAmount || totalInvested)
-    }, 0),
-    invested: items.reduce(
-      (sum, item) => sum + toNumber(item.calculated?.totalInvested ?? item.monthlyDeposit * item.tenureMonths),
-      0,
-    ),
-    details: items
-      .map((item) => ({
-        id: item.id,
-        title: item.bankName,
-        subtitle: `A/C ${item.accountNumber}`,
-        value: toNumber(item.calculated?.maturityAmount ?? item.monthlyDeposit * item.tenureMonths),
-        invested: toNumber(item.calculated?.totalInvested ?? item.monthlyDeposit * item.tenureMonths),
-      }))
-      .sort(sortByValueDesc),
+  return buildFixedIncomeTransactionSummary({
+    categoryId: 'rd',
+    keyField: 'accountNumber',
+    titleField: 'bankName',
+    subtitleField: 'accountNumber',
+    amountResolver: (_txn, rawData) => rawData.amount,
   })
 }
 
