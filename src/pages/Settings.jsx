@@ -1,13 +1,3 @@
-import {
-  Database,
-  Download,
-  Info,
-  Lock,
-  Moon,
-  RefreshCw,
-  ShieldCheck,
-  Upload,
-} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import LocalDataIndicator from '../components/LocalDataIndicator'
 import PageShell from '../components/PageShell'
@@ -29,17 +19,14 @@ import {
 } from '../utils/dataPortability'
 import { getDefaultData, saveData } from '../utils/storage'
 
-function SettingRow({ icon: Icon, iconTone, title, subtitle, children }) {
+function SettingRow({ title, subtitle, children }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-white/6 bg-white/[0.03] p-3 sm:flex-nowrap sm:p-4">
-      <div className={`icon-badge h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br ${iconTone}`}>
-        <Icon size={15} strokeWidth={2.1} />
-      </div>
+    <div className="flex flex-wrap items-center gap-3 rounded-[20px] border border-white/6 bg-white/[0.03] p-3 sm:flex-nowrap">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-wn-text">{title}</p>
         <p className="mt-1 text-xs leading-5 text-wn-muted sm:text-sm">{subtitle}</p>
       </div>
-      <div className="ml-12 shrink-0 sm:ml-0">
+      <div className="shrink-0">
         {children}
       </div>
     </div>
@@ -129,54 +116,48 @@ export default function Settings() {
   return (
     <PageShell
       eyebrow="Preferences"
-      title="Application Settings"
-      description="Manage backup, security, reminders, exports, and device-level preferences."
+      title="Settings"
+      description="Manage backup, security, reminders, and local device preferences."
     >
-      <div className="space-y-4">
-        <article className="glass-card space-y-3 p-5">
+      <div className="space-y-4 pb-24">
+        <article className="glass-card space-y-3 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="section-title">Backup & Restore</p>
+              <p className="section-title">Backup</p>
               <p className="mt-1 text-sm text-wn-muted">
-                Export local data, restore from file, or download transaction history.
+                Export, restore, or download transaction history.
               </p>
             </div>
             <span className="pill-chip">Local only</span>
           </div>
 
           <SettingRow
-            icon={Download}
-            iconTone="from-sky-500 to-blue-400"
             title="Backup"
-            subtitle="Download your full local WealthNest data as a JSON backup file."
+            subtitle={`Last backup: ${formatBackupTime(settings.lastBackupAt)}`}
           >
-            <button type="button" onClick={handleBackupDownload} className="secondary-button px-3 py-2">
-              Backup Now
+            <button type="button" onClick={handleBackupDownload} className="secondary-button px-3 py-2 text-xs">
+              Backup
             </button>
           </SettingRow>
 
           <SettingRow
-            icon={Upload}
-            iconTone="from-emerald-500 to-green-400"
-            title="Restore Backup"
-            subtitle="Import a previously exported backup and restore transactions."
+            title="Restore"
+            subtitle="Import a WealthNest backup file."
           >
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="secondary-button px-3 py-2"
+              className="secondary-button px-3 py-2 text-xs"
             >
               Restore
             </button>
           </SettingRow>
 
           <SettingRow
-            icon={RefreshCw}
-            iconTone="from-violet-500 to-fuchsia-400"
-            title="Export Transactions CSV"
-            subtitle="Download transaction records in a spreadsheet-ready format."
+            title="Transactions CSV"
+            subtitle="Download transactions in spreadsheet format."
           >
-            <button type="button" onClick={downloadTransactionsCsv} className="secondary-button px-3 py-2">
+            <button type="button" onClick={downloadTransactionsCsv} className="secondary-button px-3 py-2 text-xs">
               CSV
             </button>
           </SettingRow>
@@ -189,22 +170,17 @@ export default function Settings() {
             className="hidden"
           />
 
-          <p className="text-sm text-wn-muted">
-            Last backup: {formatBackupTime(settings.lastBackupAt)}
-          </p>
         </article>
 
-        <article className="glass-card space-y-3 p-5">
+        <article className="glass-card space-y-3 p-4">
           <div>
-            <p className="section-title">Appearance & Security</p>
+            <p className="section-title">Security</p>
             <p className="mt-1 text-sm text-wn-muted">
-              Adjust application appearance and protect access on this device.
+              Protect access and adjust app appearance.
             </p>
           </div>
 
           <SettingRow
-            icon={Moon}
-            iconTone="from-slate-500 to-slate-700"
             title="Dark Mode"
             subtitle={settings.themeMode === 'light' ? 'Light theme is enabled' : 'Dark theme is enabled'}
           >
@@ -224,8 +200,6 @@ export default function Settings() {
           </SettingRow>
 
           <SettingRow
-            icon={Lock}
-            iconTone="from-amber-500 to-yellow-400"
             title="App Lock"
             subtitle={settings.appLockEnabled ? 'PIN protection is enabled' : 'PIN protection is disabled'}
           >
@@ -256,8 +230,8 @@ export default function Settings() {
               }
               className="form-input"
             />
-            <span className="mt-2 block text-sm text-wn-muted">
-              Your PIN is stored as a one-way hash on this device. Enter a new 4-digit PIN to replace it.
+            <span className="mt-2 block text-xs leading-5 text-wn-muted">
+              Enter a new 4-digit PIN to replace the current app lock PIN.
             </span>
           </label>
 
@@ -310,7 +284,7 @@ export default function Settings() {
                   setIsSavingPin(false)
                 }
               }}
-              className="primary-button"
+              className="primary-button px-3 py-2 text-xs"
             >
               {isSavingPin ? 'Saving...' : 'Save PIN'}
             </button>
@@ -320,28 +294,26 @@ export default function Settings() {
                 setAppUnlocked(false)
                 setStatusMessage('App locked for this session.')
               }}
-              className="secondary-button"
+              className="secondary-button px-3 py-2 text-xs"
             >
               Lock Now
             </button>
           </div>
 
-          <p className="text-sm text-wn-muted">
+          <p className="text-xs text-wn-muted">
             Session unlock: {isAppUnlocked() ? 'Unlocked' : 'Locked'}
           </p>
         </article>
 
-        <article className="glass-card space-y-3 p-5">
+        <article className="glass-card space-y-3 p-4">
           <div>
-            <p className="section-title">Automation Helpers</p>
+            <p className="section-title">Preferences</p>
             <p className="mt-1 text-sm text-wn-muted">
-              Keep reminder and backup indicators aligned with local activity.
+              Control reminders and local backup indicators.
             </p>
           </div>
 
           <SettingRow
-            icon={ShieldCheck}
-            iconTone="from-emerald-500 to-green-400"
             title="Reminders"
             subtitle={settings.remindersEnabled ? 'Reminder alerts are enabled' : 'Reminder alerts are disabled'}
           >
@@ -362,8 +334,6 @@ export default function Settings() {
           </SettingRow>
 
           <SettingRow
-            icon={RefreshCw}
-            iconTone="from-sky-500 to-cyan-400"
             title="Auto Backup"
             subtitle={settings.autoBackupEnabled ? 'Backup simulation is enabled' : 'Backup simulation is disabled'}
           >
@@ -388,12 +358,12 @@ export default function Settings() {
               simulateAutoBackup()
               setStatusMessage('Auto backup timestamp updated.')
             }}
-            className="secondary-button"
+            className="secondary-button w-full px-3 py-2 text-xs"
           >
-            <span>Run Auto Backup Simulation</span>
+            <span>Run Backup Check</span>
           </button>
 
-          <div className="space-y-1 text-sm text-wn-muted">
+          <div className="space-y-1 text-xs leading-5 text-wn-muted">
             <p>Last reminder scan: {settings.lastReminderCheckAt ?? 'Never'}</p>
             <p>Simulated auto backup: {settings.autoBackupAt ?? 'Never'}</p>
           </div>
@@ -401,31 +371,27 @@ export default function Settings() {
 
         <article className="glass-card space-y-1 p-3">
           <SettingRow
-            icon={Database}
-            iconTone="from-sky-500 to-blue-400"
             title="Data Management"
             subtitle="Clear locally stored application data"
           >
             <button
               type="button"
               onClick={() => setShowClearDataConfirm(true)}
-              className="secondary-button px-3 py-2"
+              className="secondary-button px-3 py-2 text-xs"
             >
-              Clear All Data
+              Clear
             </button>
           </SettingRow>
 
           <SettingRow
-            icon={Info}
-            iconTone="from-violet-500 to-fuchsia-400"
             title="About WealthNest"
             subtitle="Version 1.0.0"
           />
         </article>
 
-        <article className="glass-card rounded-[30px] px-6 py-5">
+        <article className="glass-card rounded-[26px] px-5 py-4">
           <p className="text-sm font-semibold text-wn-text">
-            Built with <span className="mx-1 text-rose-500">❤</span> by VISIRA
+            Built by VISIRA
           </p>
         </article>
 

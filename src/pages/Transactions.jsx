@@ -1,8 +1,9 @@
-import { CalendarDays, Funnel } from 'lucide-react'
+import { CalendarDays, Download, Funnel, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CategoryIconBadge } from '../components/CategoryVisuals'
 import PageShell from '../components/PageShell'
+import { downloadTransactionsCsv } from '../utils/dataPortability'
 import { hasMasterConfig } from '../utils/masterData'
 import { getStockLineItems } from '../utils/stockTransactions'
 import { transactionCategoryOptions } from '../utils/transactionSchemas'
@@ -271,6 +272,47 @@ function summarizeAmounts(items) {
   )
 }
 
+function buildSearchText(txn) {
+  const raw = txn.rawData ?? {}
+  const stockText = getStockLineItems(raw)
+    .map((item) => [item.ticker, item.stockName].filter(Boolean).join(' '))
+    .join(' ')
+
+  return [
+    txn.id,
+    txn.category,
+    txn.type,
+    txn.title,
+    formatTxnTitle(txn),
+    formatTxnMeta(txn),
+    raw.fundName,
+    raw.fundId,
+    raw.folioNumber,
+    raw.bankName,
+    raw.accountNumber,
+    raw.policyName,
+    raw.policyNumber,
+    raw.broker,
+    raw.ticker,
+    raw.stockName,
+    stockText,
+    raw.issuerName,
+    raw.bondName,
+    raw.propertyName,
+    raw.coinName,
+    raw.symbol,
+    raw.exchange,
+    raw.employerName,
+    raw.memberId,
+    raw.uanNumber,
+    raw.pranNumber,
+    raw.notes,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
 function matchesRecordFilter(txn, recordFilter) {
   if (!recordFilter?.category || txn.category !== recordFilter.category) {
     return false
@@ -377,6 +419,7 @@ export default function Transactions() {
   const transactions = useMemo(() => listInvestmentTransactions(), [location.key])
   const [activeType, setActiveType] = useState('all')
   const [filterOpen, setFilterOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [draftFilters, setDraftFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -406,6 +449,7 @@ export default function Transactions() {
   )
 
   const filteredTransactions = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase()
     const nextTransactions = transactions.filter((txn) => {
       const type = String(txn.type).toUpperCase()
       const txnDate = parseComparableDate(txn.date)
@@ -442,6 +486,10 @@ export default function Transactions() {
         return false
       }
 
+      if (normalizedSearch && !buildSearchText(txn).includes(normalizedSearch)) {
+        return false
+      }
+
       return true
     })
 
@@ -463,7 +511,7 @@ export default function Transactions() {
     }
 
     return sortedTransactions
-  }, [activeType, appliedFilters, recordFilter, transactions])
+  }, [activeType, appliedFilters, recordFilter, searchQuery, transactions])
 
   const groupedTransactions = useMemo(() => {
     return filteredTransactions.reduce((collection, txn) => {
@@ -577,7 +625,8 @@ export default function Transactions() {
       appliedFilters.transactionType !== 'all' ||
       appliedFilters.dateFrom ||
       appliedFilters.dateTo ||
-      appliedFilters.sortBy !== 'latest',
+      appliedFilters.sortBy !== 'latest' ||
+      searchQuery.trim(),
   )
 
   const resetFilters = () => {
@@ -592,6 +641,7 @@ export default function Transactions() {
     setDraftFilters(nextFilters)
     setAppliedFilters(nextFilters)
     setActiveType('all')
+    setSearchQuery('')
 
     if (recordFilter) {
       navigate('/transactions', { replace: true })
@@ -652,6 +702,42 @@ export default function Transactions() {
           </p>
         </article>
 
+        <article className="glass-card p-3">
+          <div className="flex items-center gap-3">
+            <Search size={17} className="shrink-0 text-wn-muted" strokeWidth={2.1} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search fund, ticker, bank, folio, policy..."
+              className="min-w-0 flex-1 bg-transparent text-sm text-wn-text outline-none placeholder:text-wn-muted"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0px] font-semibold leading-none text-wn-muted hover:bg-white/[0.05] hover:text-wn-text"
+                aria-label="Clear search"
+              >
+                <X size={15} strokeWidth={2.4} />
+                ×
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setFilterOpen((current) => !current)}
+              className={`secondary-button h-9 w-9 shrink-0 rounded-2xl px-0 py-0 ${
+                hasActiveFilters
+                  ? 'border-wn-accent/60 bg-wn-accent/15 text-wn-accent-strong shadow-[0_0_18px_var(--color-wn-accent-glow)]'
+                  : ''
+              }`}
+              aria-label="Open filters"
+            >
+              <Funnel size={17} strokeWidth={2.1} />
+            </button>
+          </div>
+        </article>
+
         <div className="flex items-center justify-between gap-3 px-1 py-1">
           <div className="flex gap-3 overflow-x-auto px-1 pb-2 pt-1">
             {chipOptions.map((type) => (
@@ -672,15 +758,14 @@ export default function Transactions() {
 
           <button
             type="button"
-            onClick={() => setFilterOpen((current) => !current)}
+            onClick={() => downloadTransactionsCsv(filteredTransactions, 'wealthnest-filtered-transactions')}
+            disabled={filteredTransactions.length === 0}
             className={`secondary-button h-10 w-10 shrink-0 rounded-2xl px-0 py-0 ${
-              hasActiveFilters
-                ? 'border-wn-accent/60 bg-wn-accent/15 text-wn-accent-strong shadow-[0_0_18px_var(--color-wn-accent-glow)]'
-                : ''
+              filteredTransactions.length === 0 ? 'cursor-not-allowed opacity-60' : ''
             }`}
-            aria-label="Open filters"
+            aria-label="Export current list"
           >
-            <Funnel size={18} strokeWidth={2.1} />
+            <Download size={17} strokeWidth={2.1} />
           </button>
         </div>
 

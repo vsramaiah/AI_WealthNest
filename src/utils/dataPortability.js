@@ -58,8 +58,8 @@ function escapeCsvValue(value) {
   return `"${stringValue.replaceAll('"', '""')}"`
 }
 
-export function downloadTransactionsCsv() {
-  const rows = listInvestmentTransactions().map((txn) => [
+export function downloadTransactionsCsv(transactions = listInvestmentTransactions(), filenamePrefix = 'wealthnest-transactions') {
+  const rows = transactions.map((txn) => [
     txn.id,
     txn.category,
     txn.type,
@@ -78,7 +78,7 @@ export function downloadTransactionsCsv() {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `wealthnest-transactions-${buildBackupTimestamp()}.csv`
+  link.download = `${filenamePrefix}-${buildBackupTimestamp()}.csv`
   link.click()
   URL.revokeObjectURL(url)
 }
