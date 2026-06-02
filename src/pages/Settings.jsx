@@ -31,15 +31,15 @@ import { getDefaultData, saveData } from '../utils/storage'
 
 function SettingRow({ icon: Icon, iconTone, title, subtitle, children }) {
   return (
-    <div className="flex items-center gap-4 rounded-[24px] border border-white/6 bg-white/[0.03] p-4">
-      <div className={`icon-badge h-11 w-11 rounded-2xl bg-gradient-to-br ${iconTone}`}>
-        <Icon size={18} strokeWidth={2.1} />
+    <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-white/6 bg-white/[0.03] p-3 sm:flex-nowrap sm:p-4">
+      <div className={`icon-badge h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br ${iconTone}`}>
+        <Icon size={15} strokeWidth={2.1} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-wn-text">{title}</p>
-        <p className="mt-1 text-sm text-wn-muted">{subtitle}</p>
+        <p className="mt-1 text-xs leading-5 text-wn-muted sm:text-sm">{subtitle}</p>
       </div>
-      <div className="shrink-0">
+      <div className="ml-12 shrink-0 sm:ml-0">
         {children}
       </div>
     </div>
